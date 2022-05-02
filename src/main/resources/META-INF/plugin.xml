@@ -1,0 +1,42 @@
+<!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
+<idea-plugin>
+    <id>com.linuxgods.kreiger.intellij-idea-swedish-personal-identity-numbers</id>
+
+    <name>Swedish Personal Identity Numbers</name>
+
+    <vendor email="christoffer.hammarstrom@gmail.com">Christoffer Hammarström</vendor>
+
+    <description><![CDATA[
+    Highlights swedish personal identity numbers that are not on an approved white list.
+
+    <p>Includes support for:
+    <ul>
+      <li>Downloading official whitelists from skatteverket.se.</li>
+      <li>Navigating from number to whitelist.</li>
+      <li>Code completion of numbers from whitelist.</li>
+      <li>Coordination numbers ("samordningsnummer").</li>
+      <li>Custom formats, including missing millennium or checksum digit.</li>
+    </ul>
+    </p>
+  ]]></description>
+
+    <depends>com.intellij.modules.platform</depends>
+
+    <idea-version since-build="213"/>
+    <projectListeners>
+        <listener class="com.linuxgods.kreiger.swedish.personalidentitynumbers.SwedishPersonalNumberWhitelistFileListener"
+                  topic="com.intellij.openapi.vfs.newvfs.BulkFileListener"/>
+    </projectListeners>
+    <extensions defaultExtensionNs="com.intellij">
+        <localInspection
+                implementationClass="com.linuxgods.kreiger.swedish.personalidentitynumbers.SwedishPersonalNumbersInspection"
+                displayName="Swedish personal identity numbers"
+                groupBundle="messages.InspectionsBundle"
+                groupKey="inspection.general.tools.group.name"
+                enabledByDefault="true"
+        />
+        <psi.referenceContributor implementation="com.linuxgods.kreiger.swedish.personalidentitynumbers.SwedishPersonalNumberReferenceContributor" />
+        <completion.contributor language="any"
+                implementationClass="com.linuxgods.kreiger.swedish.personalidentitynumbers.SwedishPersonalNumberCompletionContributor" />
+    </extensions>
+</idea-plugin>
