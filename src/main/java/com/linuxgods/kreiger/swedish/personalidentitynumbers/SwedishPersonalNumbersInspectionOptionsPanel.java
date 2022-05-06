@@ -95,7 +95,6 @@ class SwedishPersonalNumbersInspectionOptionsPanel extends InspectionOptionsPane
         }.installOn(list);
         toolbarDecorator.addExtraAction(resetButton);
         toolbarDecorator.setRemoveActionUpdater(e -> list.getModel().getSize() > 1);
-        toolbarDecorator.setToolbarPosition(ActionToolbarPosition.RIGHT);
 
         JPanel panel = new JPanel(new BorderLayout());
         panel.add(toolbarDecorator.createPanel());
@@ -136,7 +135,6 @@ class SwedishPersonalNumbersInspectionOptionsPanel extends InspectionOptionsPane
         list.setCellRenderer(new FileRenderer().forList());
         ToolbarDecorator toolbarDecorator = ToolbarDecorator.createDecorator(list, model);
         toolbarDecorator.disableUpDownActions();
-        toolbarDecorator.setToolbarPosition(ActionToolbarPosition.RIGHT);
         toolbarDecorator.setAddAction(button -> {
             FileChooserDescriptor fileChooserDescriptor = new FileChooserDescriptor(true, false, false, false, true,
                     true);
@@ -146,10 +144,6 @@ class SwedishPersonalNumbersInspectionOptionsPanel extends InspectionOptionsPane
         });
         toolbarDecorator.setMinimumSize(InspectionOptionsPanel.getMinimumListSize());
         AnActionButton downloadButton = new AnActionButton(DownloadWhitelistQuickFix.FAMILY_NAME, AllIcons.ToolbarDecorator.AddLink) {
-            @Override public void updateButton(@NotNull AnActionEvent e) {
-                e.getPresentation().setEnabled(model.isEmpty());
-            }
-
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
                 DownloadWhitelistQuickFix.download(e.getProject(), model::add);

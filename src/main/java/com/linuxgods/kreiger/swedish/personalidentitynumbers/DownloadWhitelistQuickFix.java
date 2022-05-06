@@ -2,6 +2,7 @@ package com.linuxgods.kreiger.swedish.personalidentitynumbers;
 
 import com.intellij.codeInspection.LocalQuickFix;
 import com.intellij.codeInspection.ProblemDescriptor;
+import com.intellij.notification.*;
 import com.intellij.openapi.fileChooser.FileChooser;
 import com.intellij.openapi.fileChooser.FileChooserDescriptor;
 import com.intellij.openapi.progress.ProgressIndicator;
@@ -11,7 +12,6 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileManager;
-import com.intellij.psi.PsiElement;
 import com.intellij.util.io.HttpRequests;
 import org.jetbrains.annotations.Nls;
 import org.jetbrains.annotations.NotNull;
@@ -25,9 +25,13 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static com.intellij.notification.NotificationType.*;
 import static com.linuxgods.kreiger.swedish.personalidentitynumbers.SwedishPersonalNumbersInspection.addWhitelistFiles;
+import static java.util.stream.Collectors.*;
+import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 import static org.apache.commons.lang3.StringUtils.*;
 
@@ -87,6 +91,7 @@ class DownloadWhitelistQuickFix implements LocalQuickFix {
         return ProgressManager.getInstance().run(new Task.WithResult<List<Path>, UncheckedIOException>(project, "Downloading whitelists", true) {
             @Override public List<Path> compute(@NotNull ProgressIndicator indicator) {
                 List<Path> paths = new ArrayList<>();
+                List<Path> alreadyExists = new ArrayList<>();
                 for (String url : URLS) {
                     try {
                         paths.add(HttpRequests.request(url)
@@ -95,16 +100,42 @@ class DownloadWhitelistQuickFix implements LocalQuickFix {
                                     String contentDisposition = request.getConnection().getHeaderField("Content-Disposition");
                                     String fileName = getFileName(url, contentDisposition);
                                     Path path = Objects.requireNonNull(dir.toNioPath().resolve(fileName));
-                                    if (Files.exists(path)) return path;
+                                    if (Files.exists(path)) {
+                                        alreadyExists.add(path);
+                                        return path;
+                                    }
                                     return Objects.requireNonNull(request.saveToFile(path, indicator));
                                 }));
                     } catch (IOException e) {
                         throw new UncheckedIOException(e);
                     }
                 }
+
+                NotificationGroup group = NotificationGroupManager.getInstance()
+                        .getNotificationGroup("Swedish Personal Identity Numbers");
+                Notification notification = alreadyExists.isEmpty()
+                        ? group.createNotification("Downloaded " + paths.size() + " whitelist files from Skatteverket", INFORMATION)
+                        : group.createNotification("Downloaded " + paths.size() + " whitelist files", "Existing files were not overwritten: "+ joinFileNames(alreadyExists), INFORMATION);
+                notification.notify(project);
+
                 return paths;
             }
         });
+    }
+
+    @NotNull private static String joinFileNames(List<Path> alreadyExists) {
+        return alreadyExists.stream()
+                .map(Path::getFileName)
+                .map(Path::toString)
+                .collect(joining(", "));
+    }
+
+    private static Path ensureUniqueName(Path path) {
+        Path fileName = path.getFileName();
+        for (int i = 1; Files.exists(path); i++) {
+            path = path.resolveSibling(fileName.toString() + "." + i);
+        }
+        return path;
     }
 
     private static String getFileName(String url, String contentDisposition) {

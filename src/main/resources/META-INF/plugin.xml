@@ -38,5 +38,6 @@
         <psi.referenceContributor implementation="com.linuxgods.kreiger.swedish.personalidentitynumbers.SwedishPersonalNumberReferenceContributor" />
         <completion.contributor language="any"
                 implementationClass="com.linuxgods.kreiger.swedish.personalidentitynumbers.SwedishPersonalNumberCompletionContributor" />
+        <notificationGroup displayType="BALLOON" id="Swedish Personal Identity Numbers" />
     </extensions>
 </idea-plugin>

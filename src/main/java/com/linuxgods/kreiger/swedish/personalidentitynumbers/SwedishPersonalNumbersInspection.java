@@ -138,9 +138,7 @@ public class SwedishPersonalNumbersInspection extends LocalInspectionTool {
                 .map(virtualFile -> new AddToWhitelistFileQuickFix(this, virtualFile, personalNumber))
                 .collect(toList());
         fixes.add(new AddWhitelistFileQuickFix());
-        if (whitelistFiles.isEmpty()) {
-            fixes.add(new DownloadWhitelistQuickFix());
-        }
+        fixes.add(new DownloadWhitelistQuickFix());
         return fixes.stream();
     }
 
