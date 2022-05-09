@@ -2,7 +2,6 @@ package com.linuxgods.kreiger.swedish.personalidentitynumbers;
 
 import com.intellij.codeInspection.ui.InspectionOptionsPanel;
 import com.intellij.icons.AllIcons;
-import com.intellij.openapi.actionSystem.ActionToolbarPosition;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.CommonDataKeys;
 import com.intellij.openapi.fileChooser.FileChooser;
@@ -14,8 +13,12 @@ import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.openapi.ui.popup.Balloon;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.ui.*;
+import com.intellij.ui.AnActionButton;
+import com.intellij.ui.CollectionListModel;
+import com.intellij.ui.DoubleClickListener;
+import com.intellij.ui.ToolbarDecorator;
 import com.intellij.ui.components.*;
+import net.miginfocom.swing.MigLayout;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -29,6 +32,7 @@ import java.awt.event.MouseEvent;
 import java.util.Set;
 import java.util.function.Consumer;
 
+import static com.intellij.icons.AllIcons.Ide.External_link_arrow;
 import static com.linuxgods.kreiger.swedish.personalidentitynumbers.PersonalNumberFormat.formatWithCentury;
 import static com.linuxgods.kreiger.swedish.personalidentitynumbers.Requirement.ALLOWED;
 import static com.linuxgods.kreiger.swedish.personalidentitynumbers.Requirement.REJECTED;
@@ -36,17 +40,18 @@ import static com.linuxgods.kreiger.swedish.personalidentitynumbers.SwedishPerso
 
 class SwedishPersonalNumbersInspectionOptionsPanel extends InspectionOptionsPanel {
     public static final String SKATTEVERKET_URL = "https://skatteverket.se/omoss/apierochoppnadata/kunskapochinspiration/alltdubehovervetaomtestpersonnummer.4.5b35a6251761e6914202df9.html";
+    public static final String COORDINATION_NUMBERS_URL = "https://www.skatteverket.se/servicelankar/otherlanguages/inenglish/individualsandemployees/coordinationnumbers.4.1657ce2817f5a993c3a7d2a.html";
 
     SwedishPersonalNumbersInspectionOptionsPanel(SwedishPersonalNumbersInspection inspection) {
         PersonalNumberFormats formats = inspection.getFormats();
         JBTabbedPane tabs = new JBTabbedPane(SwingConstants.TOP);
-        tabs.add("Personal number formats", getFormatsPanel(inspection, formats));
+        tabs.add("Personal number formats", getFormatsPanel(tabs, inspection, formats));
         tabs.add("Whitelist files", getWhitelistPanel(inspection));
         add(tabs, "span, wrap, grow");
     }
 
     @NotNull
-    private JPanel getFormatsPanel(SwedishPersonalNumbersInspection inspection, PersonalNumberFormats formats) {
+    private JPanel getFormatsPanel(JBTabbedPane tabs, SwedishPersonalNumbersInspection inspection, PersonalNumberFormats formats) {
         CollectionListModel<PersonalNumberFormat> listModel = new CollectionListModel<>(formats.getFormats(), true);
         AnActionButton resetButton = new AnActionButton("Reset", AllIcons.General.Reset) {
             @Override public void updateButton(@NotNull AnActionEvent e) {
@@ -96,10 +101,15 @@ class SwedishPersonalNumbersInspectionOptionsPanel extends InspectionOptionsPane
         toolbarDecorator.addExtraAction(resetButton);
         toolbarDecorator.setRemoveActionUpdater(e -> list.getModel().getSize() > 1);
 
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.add(toolbarDecorator.createPanel());
-        panel.add(checkBox("Allow coordination numbers (\"samordningsnummer\")", formats.getCoordinationNumber(),
-                formats::setCoordinationNumber), BorderLayout.SOUTH);
+        JPanel panel = new JPanel(new MigLayout("fillx, ins 0"));
+        panel.add(toolbarDecorator.createPanel(), "growx, wrap");
+        panel.add(checkBox("Allow coordination numbers", formats.getCoordinationNumber(),
+                formats::setCoordinationNumber), "split");
+        panel.add(new BrowserLink(External_link_arrow, "\"samordningsnummer\"",
+                COORDINATION_NUMBERS_URL, COORDINATION_NUMBERS_URL), "align right, wrap");
+        panel.add(new ActionLink("Manage whitelist files...", e -> {
+            tabs.setSelectedIndex(1);
+        }), "wrap");
         return panel;
     }
 
@@ -150,15 +160,12 @@ class SwedishPersonalNumbersInspectionOptionsPanel extends InspectionOptionsPane
             }
         };
         toolbarDecorator.addExtraAction(downloadButton);
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.add(toolbarDecorator.createPanel());
-        panel.add(getLinkLabel(), BorderLayout.SOUTH);
-        return panel;
-    }
-
-    private BrowserLink getLinkLabel() {
-        return new BrowserLink(null, "Find official CSV files at skatteverket.se", SKATTEVERKET_URL,
+        JPanel panel = new JPanel(new MigLayout("fillx, ins 0, wrap"));
+        panel.add(toolbarDecorator.createPanel(), "growx");
+        BrowserLink browserLink = new BrowserLink(External_link_arrow, "Find official CSV files at skatteverket.se", SKATTEVERKET_URL,
                 SKATTEVERKET_URL);
+        panel.add(browserLink, "align right");
+        return panel;
     }
 
     @NotNull
@@ -214,7 +221,7 @@ class SwedishPersonalNumbersInspectionOptionsPanel extends InspectionOptionsPane
                             .createBalloon();
                     balloon.showInCenterOf(formatLabel);
                 });
-                add(copyLink, "align right, wrap");
+                add(copyLink, "wrap");
 
                 add(new JSeparator(), "gapy 5, growx, span, wrap");
 
