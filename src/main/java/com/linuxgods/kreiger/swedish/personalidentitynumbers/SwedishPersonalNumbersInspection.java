@@ -47,10 +47,7 @@ public class SwedishPersonalNumbersInspection extends LocalInspectionTool {
     @NotNull
     static List<PersonalNumberFormat> defaultFormats() {
         return List.of(
-                formatWithCentury(ALLOWED)
-                        .setInvalidChecksumAllowed(true),
-                formatWithCentury(REQUIRED)
-                        .setSurroundingDigitsAllowed(true)
+                formatWithCentury(ALLOWED).setInvalidChecksumAllowed(true)
         );
     }
 

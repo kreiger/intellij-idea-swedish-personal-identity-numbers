@@ -18,6 +18,7 @@ import com.intellij.ui.CollectionListModel;
 import com.intellij.ui.DoubleClickListener;
 import com.intellij.ui.ToolbarDecorator;
 import com.intellij.ui.components.*;
+import com.intellij.util.ui.ConfirmationDialog;
 import net.miginfocom.swing.MigLayout;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -53,7 +54,7 @@ class SwedishPersonalNumbersInspectionOptionsPanel extends InspectionOptionsPane
     @NotNull
     private JPanel getFormatsPanel(JBTabbedPane tabs, SwedishPersonalNumbersInspection inspection, PersonalNumberFormats formats) {
         CollectionListModel<PersonalNumberFormat> listModel = new CollectionListModel<>(formats.getFormats(), true);
-        AnActionButton resetButton = new AnActionButton("Reset", AllIcons.General.Reset) {
+        AnActionButton resetButton = new AnActionButton("Reset to default", AllIcons.Actions.Rollback) {
             @Override public void updateButton(@NotNull AnActionEvent e) {
                 e.getPresentation().setEnabled(!defaultFormats().equals(formats.getFormats()));
             }
