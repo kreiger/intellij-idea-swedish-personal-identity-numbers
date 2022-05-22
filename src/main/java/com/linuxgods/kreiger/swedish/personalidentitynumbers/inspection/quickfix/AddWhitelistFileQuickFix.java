@@ -1,4 +1,4 @@
-package com.linuxgods.kreiger.swedish.personalidentitynumbers;
+package com.linuxgods.kreiger.swedish.personalidentitynumbers.inspection.quickfix;
 
 import com.intellij.codeInspection.LocalQuickFix;
 import com.intellij.codeInspection.ProblemDescriptor;
@@ -8,9 +8,9 @@ import com.intellij.openapi.project.Project;
 import org.jetbrains.annotations.Nls;
 import org.jetbrains.annotations.NotNull;
 
-import static com.linuxgods.kreiger.swedish.personalidentitynumbers.SwedishPersonalNumbersInspection.addWhitelistFiles;
+import static com.linuxgods.kreiger.swedish.personalidentitynumbers.inspection.PersonalIdentityNumbersInspection.addWhitelistFiles;
 
-class AddWhitelistFileQuickFix implements LocalQuickFix {
+public class AddWhitelistFileQuickFix implements LocalQuickFix {
 
     public AddWhitelistFileQuickFix() {
     }

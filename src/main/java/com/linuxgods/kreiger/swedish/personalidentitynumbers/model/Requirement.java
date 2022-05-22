@@ -1,8 +1,8 @@
-package com.linuxgods.kreiger.swedish.personalidentitynumbers;
+package com.linuxgods.kreiger.swedish.personalidentitynumbers.model;
 
 import java.util.Locale;
 
-enum Requirement {
+public enum Requirement {
     REQUIRED,
     ALLOWED,
     REJECTED;

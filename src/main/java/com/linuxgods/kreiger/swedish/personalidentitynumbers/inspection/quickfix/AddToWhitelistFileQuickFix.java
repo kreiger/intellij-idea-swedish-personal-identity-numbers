@@ -1,4 +1,4 @@
-package com.linuxgods.kreiger.swedish.personalidentitynumbers;
+package com.linuxgods.kreiger.swedish.personalidentitynumbers.inspection.quickfix;
 
 import com.intellij.codeInspection.LocalQuickFix;
 import com.intellij.codeInspection.ProblemDescriptor;
@@ -9,23 +9,26 @@ import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.linuxgods.kreiger.swedish.personalidentitynumbers.inspection.PersonalIdentityNumbersInspection;
+import com.linuxgods.kreiger.swedish.personalidentitynumbers.model.PersonalIdentityNumber;
+import com.linuxgods.kreiger.swedish.personalidentitynumbers.model.PersonalIdentityNumberRange;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
-import static com.linuxgods.kreiger.swedish.personalidentitynumbers.SwedishPersonalNumbersInspection.WHITELIST_FORMATS;
+import static com.linuxgods.kreiger.swedish.personalidentitynumbers.inspection.PersonalIdentityNumbersInspection.WHITELIST_FORMATS;
 import static one.util.streamex.MoreCollectors.tail;
 
 public class AddToWhitelistFileQuickFix implements LocalQuickFix {
 
-    private final SwedishPersonalNumbersInspection inspection;
+    private final PersonalIdentityNumbersInspection inspection;
     private final VirtualFile virtualFile;
-    private final PersonalNumber personalNumber;
+    private final PersonalIdentityNumber personalIdentityNumber;
 
-    public AddToWhitelistFileQuickFix(SwedishPersonalNumbersInspection inspection, VirtualFile virtualFile, PersonalNumber personalNumber) {
+    public AddToWhitelistFileQuickFix(PersonalIdentityNumbersInspection inspection, VirtualFile virtualFile, PersonalIdentityNumber personalIdentityNumber) {
         this.inspection = inspection;
         this.virtualFile = virtualFile;
-        this.personalNumber = personalNumber;
+        this.personalIdentityNumber = personalIdentityNumber;
     }
 
     @Override
@@ -35,7 +38,7 @@ public class AddToWhitelistFileQuickFix implements LocalQuickFix {
 
     @Override
     public @IntentionName @NotNull String getName() {
-        return "Add '" + personalNumber + "' to whitelist file '" + virtualFile.getPresentableName() + "'";
+        return "Add '" + personalIdentityNumber + "' to whitelist file '" + virtualFile.getPresentableName() + "'";
     }
 
     @Override
@@ -45,14 +48,14 @@ public class AddToWhitelistFileQuickFix implements LocalQuickFix {
             Document document = fileDocumentManager.getDocument(virtualFile);
             if (document == null) return;
             CharSequence charsSequence = document.getCharsSequence();
-            List<PersonalNumberRange> tail = WHITELIST_FORMATS.ranges(charsSequence)
+            List<PersonalIdentityNumberRange> tail = WHITELIST_FORMATS.ranges(charsSequence)
                     .collect(tail(3));
             if (tail.size() == 3) {
                 String betwixt = charsSequence.subSequence(tail.get(0).getTextRange().getEndOffset(),
                         tail.get(1).getTextRange().getStartOffset()).toString();
                 if (betwixt.equals(charsSequence.subSequence(tail.get(1).getTextRange().getEndOffset(),
                         tail.get(2).getTextRange().getStartOffset()).toString())) {
-                    String toAppend = betwixt + personalNumber;
+                    String toAppend = betwixt + personalIdentityNumber;
                     document.insertString(tail.get(2).getTextRange().getEndOffset(), toAppend);
                     inspection.init();
                     return;
@@ -61,9 +64,9 @@ public class AddToWhitelistFileQuickFix implements LocalQuickFix {
             int length = charsSequence.length();
             String toAppend;
             if (length > 0 && charsSequence.charAt(length - 1) != '\n') {
-                toAppend = "\n" + personalNumber;
+                toAppend = "\n" + personalIdentityNumber;
             } else {
-                toAppend = personalNumber + "\n";
+                toAppend = personalIdentityNumber + "\n";
             }
             document.insertString(length, toAppend);
             inspection.init();

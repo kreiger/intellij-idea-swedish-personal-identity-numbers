@@ -1,4 +1,4 @@
-package com.linuxgods.kreiger.swedish.personalidentitynumbers;
+package com.linuxgods.kreiger.swedish.personalidentitynumbers.inspection;
 
 import com.intellij.codeInspection.ui.InspectionOptionsPanel;
 import com.intellij.icons.AllIcons;
@@ -18,7 +18,10 @@ import com.intellij.ui.CollectionListModel;
 import com.intellij.ui.DoubleClickListener;
 import com.intellij.ui.ToolbarDecorator;
 import com.intellij.ui.components.*;
-import com.intellij.util.ui.ConfirmationDialog;
+import com.linuxgods.kreiger.swedish.personalidentitynumbers.inspection.quickfix.DownloadWhitelistQuickFix;
+import com.linuxgods.kreiger.swedish.personalidentitynumbers.model.PersonalIdentityNumberFormat;
+import com.linuxgods.kreiger.swedish.personalidentitynumbers.model.PersonalIdentityNumberFormats;
+import com.linuxgods.kreiger.swedish.personalidentitynumbers.model.Requirement;
 import net.miginfocom.swing.MigLayout;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -34,17 +37,17 @@ import java.util.Set;
 import java.util.function.Consumer;
 
 import static com.intellij.icons.AllIcons.Ide.External_link_arrow;
-import static com.linuxgods.kreiger.swedish.personalidentitynumbers.PersonalNumberFormat.formatWithCentury;
-import static com.linuxgods.kreiger.swedish.personalidentitynumbers.Requirement.ALLOWED;
-import static com.linuxgods.kreiger.swedish.personalidentitynumbers.Requirement.REJECTED;
-import static com.linuxgods.kreiger.swedish.personalidentitynumbers.SwedishPersonalNumbersInspection.defaultFormats;
+import static com.linuxgods.kreiger.swedish.personalidentitynumbers.inspection.PersonalIdentityNumbersInspection.defaultFormats;
+import static com.linuxgods.kreiger.swedish.personalidentitynumbers.model.PersonalIdentityNumberFormat.formatWithCentury;
+import static com.linuxgods.kreiger.swedish.personalidentitynumbers.model.Requirement.ALLOWED;
+import static com.linuxgods.kreiger.swedish.personalidentitynumbers.model.Requirement.REJECTED;
 
-class SwedishPersonalNumbersInspectionOptionsPanel extends InspectionOptionsPanel {
+class PersonalIdentityNumbersInspectionOptionsPanel extends InspectionOptionsPanel {
     public static final String SKATTEVERKET_URL = "https://skatteverket.se/omoss/apierochoppnadata/kunskapochinspiration/alltdubehovervetaomtestpersonnummer.4.5b35a6251761e6914202df9.html";
     public static final String COORDINATION_NUMBERS_URL = "https://www.skatteverket.se/servicelankar/otherlanguages/inenglish/individualsandemployees/coordinationnumbers.4.1657ce2817f5a993c3a7d2a.html";
 
-    SwedishPersonalNumbersInspectionOptionsPanel(SwedishPersonalNumbersInspection inspection) {
-        PersonalNumberFormats formats = inspection.getFormats();
+    PersonalIdentityNumbersInspectionOptionsPanel(PersonalIdentityNumbersInspection inspection) {
+        PersonalIdentityNumberFormats formats = inspection.getFormats();
         JBTabbedPane tabs = new JBTabbedPane(SwingConstants.TOP);
         tabs.add("Personal number formats", getFormatsPanel(tabs, inspection, formats));
         tabs.add("Whitelist files", getWhitelistPanel(inspection));
@@ -52,8 +55,8 @@ class SwedishPersonalNumbersInspectionOptionsPanel extends InspectionOptionsPane
     }
 
     @NotNull
-    private JPanel getFormatsPanel(JBTabbedPane tabs, SwedishPersonalNumbersInspection inspection, PersonalNumberFormats formats) {
-        CollectionListModel<PersonalNumberFormat> listModel = new CollectionListModel<>(formats.getFormats(), true);
+    private JPanel getFormatsPanel(JBTabbedPane tabs, PersonalIdentityNumbersInspection inspection, PersonalIdentityNumberFormats formats) {
+        CollectionListModel<PersonalIdentityNumberFormat> listModel = new CollectionListModel<>(formats.getFormats(), true);
         AnActionButton resetButton = new AnActionButton("Reset to default", AllIcons.Actions.Rollback) {
             @Override public void updateButton(@NotNull AnActionEvent e) {
                 e.getPresentation().setEnabled(!defaultFormats().equals(formats.getFormats()));
@@ -81,11 +84,11 @@ class SwedishPersonalNumbersInspectionOptionsPanel extends InspectionOptionsPane
                 inspection.setFormats(formats);
             }
         });
-        JBList<PersonalNumberFormat> list = new JBList<>(listModel);
+        JBList<PersonalIdentityNumberFormat> list = new JBList<>(listModel);
         ToolbarDecorator toolbarDecorator = ToolbarDecorator.createDecorator(list);
         toolbarDecorator.setPreferredSize(getMinimumListSize());
         toolbarDecorator.setAddAction(anActionButton -> {
-            PersonalNumberFormat patternBuilder = formatWithCentury(ALLOWED);
+            PersonalIdentityNumberFormat patternBuilder = formatWithCentury(ALLOWED);
             if (new PersonalNumberFormatDialog(patternBuilder).showAndGet()) {
                 listModel.add(patternBuilder);
             }
@@ -114,31 +117,31 @@ class SwedishPersonalNumbersInspectionOptionsPanel extends InspectionOptionsPane
         return panel;
     }
 
-    private void edit(CollectionListModel<PersonalNumberFormat> listModel, JBList<PersonalNumberFormat> list) {
-        PersonalNumberFormat copy = list.getSelectedValue().copy();
+    private void edit(CollectionListModel<PersonalIdentityNumberFormat> listModel, JBList<PersonalIdentityNumberFormat> list) {
+        PersonalIdentityNumberFormat copy = list.getSelectedValue().copy();
         if (new PersonalNumberFormatDialog(copy).showAndGet()) {
             listModel.setElementAt(copy, list.getSelectedIndex());
         }
     }
 
     @NotNull
-    private JPanel getWhitelistPanel(SwedishPersonalNumbersInspection inspection) {
+    private JPanel getWhitelistPanel(PersonalIdentityNumbersInspection inspection) {
         Set<VirtualFile> whitelistFiles = inspection.getWhitelistFiles();
         CollectionListModel<VirtualFile> model = new CollectionListModel<>(whitelistFiles);
         model.addListDataListener(new ListDataListener() {
             @Override
             public void intervalAdded(ListDataEvent e) {
-                inspection.setWhitelistUrls(SwedishPersonalNumbersInspection.getFileUrls(model.getItems()));
+                inspection.setWhitelistUrls(PersonalIdentityNumbersInspection.getFileUrls(model.getItems()));
             }
 
             @Override
             public void intervalRemoved(ListDataEvent e) {
-                inspection.setWhitelistUrls(SwedishPersonalNumbersInspection.getFileUrls(model.getItems()));
+                inspection.setWhitelistUrls(PersonalIdentityNumbersInspection.getFileUrls(model.getItems()));
             }
 
             @Override
             public void contentsChanged(ListDataEvent e) {
-                inspection.setWhitelistUrls(SwedishPersonalNumbersInspection.getFileUrls(model.getItems()));
+                inspection.setWhitelistUrls(PersonalIdentityNumbersInspection.getFileUrls(model.getItems()));
             }
         });
 
@@ -196,8 +199,8 @@ class SwedishPersonalNumbersInspectionOptionsPanel extends InspectionOptionsPane
 
         private final JPanel centerPanel;
 
-        public PersonalNumberFormatDialog(PersonalNumberFormat patternBuilder) {
-            super(SwedishPersonalNumbersInspectionOptionsPanel.this, false);
+        public PersonalNumberFormatDialog(PersonalIdentityNumberFormat patternBuilder) {
+            super(PersonalIdentityNumbersInspectionOptionsPanel.this, false);
             centerPanel = new PersonalNumberFormatPanel(patternBuilder);
             setTitle("Personal Number Format");
             init();
@@ -209,7 +212,7 @@ class SwedishPersonalNumbersInspectionOptionsPanel extends InspectionOptionsPane
         }
 
         private class PersonalNumberFormatPanel extends InspectionOptionsPanel {
-            public PersonalNumberFormatPanel(PersonalNumberFormat pb) {
+            public PersonalNumberFormatPanel(PersonalIdentityNumberFormat pb) {
 
                 JLabel formatLabel = new JLabel(pb.formatString());
                 add(formatLabel, "gapy 5, align center, span 3");
@@ -279,7 +282,7 @@ class SwedishPersonalNumbersInspectionOptionsPanel extends InspectionOptionsPane
 
         }
 
-        private void updateLabel(PersonalNumberFormat pb, JLabel formatLabel) {
+        private void updateLabel(PersonalIdentityNumberFormat pb, JLabel formatLabel) {
             formatLabel.setText(pb.formatString());
         }
     }

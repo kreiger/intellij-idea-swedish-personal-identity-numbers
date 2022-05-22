@@ -1,4 +1,4 @@
-package com.linuxgods.kreiger.swedish.personalidentitynumbers;
+package com.linuxgods.kreiger.swedish.personalidentitynumbers.model;
 
 import com.intellij.openapi.util.TextRange;
 

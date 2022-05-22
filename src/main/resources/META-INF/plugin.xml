@@ -1,43 +1,53 @@
-<!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
-<idea-plugin>
-    <id>com.linuxgods.kreiger.intellij-idea-swedish-personal-identity-numbers</id>
+<idea-plugin url="https://github.com/kreiger/intellij-idea-swedish-personal-identity-numbers">
+    <id>com.linuxgods.kreiger.swedish-personal-identity-numbers</id>
 
     <name>Swedish Personal Identity Numbers</name>
+
+    <version>1.0.0</version>
 
     <vendor email="christoffer.hammarstrom@gmail.com">Christoffer Hammarström</vendor>
 
     <description><![CDATA[
-    Highlights swedish personal identity numbers that are not on an approved white list.
-
-    <p>Includes support for:
+    <p>
+    Highlights <a href="https://www.skatteverket.se/servicelankar/otherlanguages/inenglish/individualsandemployees/livinginsweden/personalidentitynumberandcoordinationnumber.4.2cf1b5cd163796a5c8b4295.html">Swedish personal identity numbers</a> <br />
+    that are not on an approved whitelist.
+    </p>
+    <p>Includes support for:</p>
     <ul>
-      <li>Downloading official whitelists from skatteverket.se.</li>
+      <li>All languages and text files.</li>
+      <li>Downloading <a href="https://skatteverket.se/omoss/apierochoppnadata/kunskapochinspiration/alltdubehovervetaomtestpersonnummer.4.5b35a6251761e6914202df9.html">official whitelists</a> from skatteverket.se.</li>
       <li>Navigating from number to whitelist.</li>
       <li>Code completion of numbers from whitelist.</li>
-      <li>Coordination numbers ("samordningsnummer").</li>
-      <li>Custom formats, including missing millennium or checksum digit.</li>
+      <li><a href="https://www.skatteverket.se/servicelankar/otherlanguages/inenglish/individualsandemployees/coordinationnumbers.4.1657ce2817f5a993c3a7d2a.html">Coordination numbers</a> ("samordningsnummer").</li>
+      <li>Custom formats, including allowing surrounding digits, or missing millennium or checksum digit.</li>
     </ul>
+    <p>
+    <img src="https://raw.githubusercontent.com/kreiger/intellij-idea-swedish-personal-identity-numbers/main/screenshot2.png" />
     </p>
-  ]]></description>
+    ]]>
+    </description>
 
     <depends>com.intellij.modules.platform</depends>
 
     <idea-version since-build="213"/>
     <projectListeners>
-        <listener class="com.linuxgods.kreiger.swedish.personalidentitynumbers.SwedishPersonalNumberWhitelistFileListener"
-                  topic="com.intellij.openapi.vfs.newvfs.BulkFileListener"/>
+        <listener
+                class="com.linuxgods.kreiger.swedish.personalidentitynumbers.PersonalIdentityNumberWhitelistFileListener"
+                topic="com.intellij.openapi.vfs.newvfs.BulkFileListener"/>
     </projectListeners>
     <extensions defaultExtensionNs="com.intellij">
         <localInspection
-                implementationClass="com.linuxgods.kreiger.swedish.personalidentitynumbers.SwedishPersonalNumbersInspection"
+                shortName="SwedishPersonalIdentityNumbers"
+                implementationClass="com.linuxgods.kreiger.swedish.personalidentitynumbers.inspection.PersonalIdentityNumbersInspection"
                 displayName="Swedish personal identity numbers"
                 groupBundle="messages.InspectionsBundle"
                 groupKey="inspection.general.tools.group.name"
                 enabledByDefault="true"
         />
-        <psi.referenceContributor implementation="com.linuxgods.kreiger.swedish.personalidentitynumbers.SwedishPersonalNumberReferenceContributor" />
+        <psi.referenceContributor
+                implementation="com.linuxgods.kreiger.swedish.personalidentitynumbers.PersonaldentityNumberReferenceContributor"/>
         <completion.contributor language="any"
-                implementationClass="com.linuxgods.kreiger.swedish.personalidentitynumbers.SwedishPersonalNumberCompletionContributor" />
-        <notificationGroup displayType="BALLOON" id="Swedish Personal Identity Numbers" />
+                                implementationClass="com.linuxgods.kreiger.swedish.personalidentitynumbers.PersonalIdentityNumberCompletionContributor"/>
+        <notificationGroup displayType="BALLOON" id="Swedish Personal Identity Numbers"/>
     </extensions>
 </idea-plugin>

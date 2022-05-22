@@ -1,4 +1,4 @@
-package com.linuxgods.kreiger.swedish.personalidentitynumbers;
+package com.linuxgods.kreiger.swedish.personalidentitynumbers.model;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -6,9 +6,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
 
-import static com.linuxgods.kreiger.swedish.personalidentitynumbers.Requirement.*;
+import static com.linuxgods.kreiger.swedish.personalidentitynumbers.model.Requirement.*;
 
-public class PersonalNumberFormat implements Cloneable {
+public class PersonalIdentityNumberFormat implements Cloneable {
     private static final String YEAR_IN_CENTURY = "[0-9]{2}";
     private static final String MONTH = "0[1-9]|1[012]";
     private static final String DAY_IN_MONTH_COORDINATION_OPTIONAL = "[06][1-9]|[1278][0-9]|[39][01]";
@@ -29,8 +29,8 @@ public class PersonalNumberFormat implements Cloneable {
     private boolean invalidChecksumAllowed = false;
     private boolean surroundingDigitsAllowed = false;
 
-    public static PersonalNumberFormat formatWithCentury(Requirement century) {
-        return new PersonalNumberFormat().setCentury(century);
+    public static PersonalIdentityNumberFormat formatWithCentury(Requirement century) {
+        return new PersonalIdentityNumberFormat().setCentury(century);
     }
 
 
@@ -57,7 +57,7 @@ public class PersonalNumberFormat implements Cloneable {
         return millennium;
     }
 
-    public PersonalNumberFormat setMillennium(Requirement millennium) {
+    public PersonalIdentityNumberFormat setMillennium(Requirement millennium) {
         this.millennium = millennium;
         return this;
     }
@@ -66,7 +66,7 @@ public class PersonalNumberFormat implements Cloneable {
         return century;
     }
 
-    public PersonalNumberFormat setCentury(Requirement century) {
+    public PersonalIdentityNumberFormat setCentury(Requirement century) {
         this.century = century;
         return this;
     }
@@ -75,7 +75,7 @@ public class PersonalNumberFormat implements Cloneable {
         return separator;
     }
 
-    public PersonalNumberFormat setSeparator(Requirement separator) {
+    public PersonalIdentityNumberFormat setSeparator(Requirement separator) {
         this.separator = separator;
         return this;
     }
@@ -84,7 +84,7 @@ public class PersonalNumberFormat implements Cloneable {
         return checksumDigit;
     }
 
-    public PersonalNumberFormat setChecksumDigit(Requirement checksumDigit) {
+    public PersonalIdentityNumberFormat setChecksumDigit(Requirement checksumDigit) {
         this.checksumDigit = checksumDigit;
         return this;
     }
@@ -93,7 +93,7 @@ public class PersonalNumberFormat implements Cloneable {
         return surroundingDigitsAllowed;
     }
 
-    public PersonalNumberFormat setSurroundingDigitsAllowed(boolean surroundingDigitsAllowed) {
+    public PersonalIdentityNumberFormat setSurroundingDigitsAllowed(boolean surroundingDigitsAllowed) {
         this.surroundingDigitsAllowed = surroundingDigitsAllowed;
         return this;
     }
@@ -101,9 +101,9 @@ public class PersonalNumberFormat implements Cloneable {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (!(o instanceof PersonalNumberFormat)) return false;
+        if (!(o instanceof PersonalIdentityNumberFormat)) return false;
 
-        PersonalNumberFormat that = (PersonalNumberFormat) o;
+        PersonalIdentityNumberFormat that = (PersonalIdentityNumberFormat) o;
 
         if (invalidChecksumAllowed != that.invalidChecksumAllowed) return false;
         if (surroundingDigitsAllowed != that.surroundingDigitsAllowed) return false;
@@ -143,7 +143,7 @@ public class PersonalNumberFormat implements Cloneable {
         return String.join(", ", suffix);
     }
 
-    @NotNull String formatString() {
+    @NotNull public String formatString() {
         String century = this.century.fold(
                 this.millennium.fold("YY", "Y?Y", "Y"),
                 this.millennium.fold("(YY)?", "Y?Y?", "Y?"),
@@ -158,9 +158,9 @@ public class PersonalNumberFormat implements Cloneable {
         return super.clone();
     }
 
-    PersonalNumberFormat copy() {
+    public PersonalIdentityNumberFormat copy() {
         try {
-            return (PersonalNumberFormat) clone();
+            return (PersonalIdentityNumberFormat) clone();
         } catch (CloneNotSupportedException e) {
             throw new RuntimeException(e);
         }
@@ -171,12 +171,12 @@ public class PersonalNumberFormat implements Cloneable {
         return invalidChecksumAllowed;
     }
 
-    public PersonalNumberFormat setInvalidChecksumAllowed(boolean invalidChecksumAllowed) {
+    public PersonalIdentityNumberFormat setInvalidChecksumAllowed(boolean invalidChecksumAllowed) {
         this.invalidChecksumAllowed = invalidChecksumAllowed;
         return this;
     }
 
-    public Predicate<PersonalNumberPatternMatch> getPredicate() {
+    public Predicate<PersonalIdentityNumberPatternMatch> getPredicate() {
         return invalidChecksumAllowed
                 ? match -> true
                 : match -> match.getChecksumDigit().isEmpty() || match.getChecksumDigit().equals("" + match.getCorrectChecksum());

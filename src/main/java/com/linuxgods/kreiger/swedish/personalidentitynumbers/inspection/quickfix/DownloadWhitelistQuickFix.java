@@ -1,4 +1,4 @@
-package com.linuxgods.kreiger.swedish.personalidentitynumbers;
+package com.linuxgods.kreiger.swedish.personalidentitynumbers.inspection.quickfix;
 
 import com.intellij.codeInspection.LocalQuickFix;
 import com.intellij.codeInspection.ProblemDescriptor;
@@ -25,17 +25,15 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static com.intellij.notification.NotificationType.*;
-import static com.linuxgods.kreiger.swedish.personalidentitynumbers.SwedishPersonalNumbersInspection.addWhitelistFiles;
-import static java.util.stream.Collectors.*;
+import static com.linuxgods.kreiger.swedish.personalidentitynumbers.inspection.PersonalIdentityNumbersInspection.addWhitelistFiles;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 import static org.apache.commons.lang3.StringUtils.*;
 
-class DownloadWhitelistQuickFix implements LocalQuickFix {
+public class DownloadWhitelistQuickFix implements LocalQuickFix {
 
     private final static String BASE_URL = "https://skatteverket.entryscape.net/store/9/resource/";
 

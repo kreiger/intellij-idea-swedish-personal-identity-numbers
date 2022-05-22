@@ -1,8 +1,8 @@
-package com.linuxgods.kreiger.swedish.personalidentitynumbers;
+package com.linuxgods.kreiger.swedish.personalidentitynumbers.model;
 
 import java.util.regex.MatchResult;
 
-public class PersonalNumberPatternMatch {
+public class PersonalIdentityNumberPatternMatch {
     private static final int GROUP_COUNT = 6;
     private final String original;
     private final String date;
@@ -16,7 +16,7 @@ public class PersonalNumberPatternMatch {
     private final int end;
     private final int correctChecksum;
 
-    PersonalNumberPatternMatch(MatchResult match) {
+    PersonalIdentityNumberPatternMatch(MatchResult match) {
         this.start = match.start();
         this.end = match.end();
         this.original = match.group();

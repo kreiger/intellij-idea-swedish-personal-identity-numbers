@@ -1,4 +1,4 @@
-package com.linuxgods.kreiger.swedish.personalidentitynumbers;
+package com.linuxgods.kreiger.swedish.personalidentitynumbers.model;
 
 import com.intellij.openapi.util.TextRange;
 
@@ -10,21 +10,21 @@ import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.joining;
 
-public class PersonalNumberFormats {
-    private List<PersonalNumberFormat> formats;
+public class PersonalIdentityNumberFormats {
+    private List<PersonalIdentityNumberFormat> formats;
     private Pattern pattern;
 
     private boolean coordinationNumber = true;
 
-    public PersonalNumberFormats() {
+    public PersonalIdentityNumberFormats() {
 
     }
 
-    public PersonalNumberFormats(List<PersonalNumberFormat> formats) {
+    public PersonalIdentityNumberFormats(List<PersonalIdentityNumberFormat> formats) {
         setFormats(new ArrayList<>(formats));
     }
 
-    public Stream<PersonalNumberRange> ranges(CharSequence chars) {
+    public Stream<PersonalIdentityNumberRange> ranges(CharSequence chars) {
 
         return pattern.matcher(chars)
                 .results()
@@ -42,11 +42,11 @@ public class PersonalNumberFormats {
                             return true;
                     }
                 })
-                .map(PersonalNumberPatternMatch::new)
+                .map(PersonalIdentityNumberPatternMatch::new)
                 .filter(match -> formats.get(match.getMatchedPatternIndex()).getPredicate().test(match))
-                .flatMap(match -> Stream.of(PersonalNumber.of(match))
+                .flatMap(match -> Stream.of(PersonalIdentityNumber.of(match))
                         .filter(getPredicate())
-                        .map(personalNumber -> new PersonalNumberRange(
+                        .map(personalNumber -> new PersonalIdentityNumberRange(
                                 personalNumber,
                                 new TextRange(match.start(), match.end())))
                 );
@@ -56,14 +56,14 @@ public class PersonalNumberFormats {
         return !Character.isLetterOrDigit(first) && first == last;
     }
 
-    public List<PersonalNumberFormat> getFormats() {
+    public List<PersonalIdentityNumberFormat> getFormats() {
         return formats;
     }
 
-    public void setFormats(List<PersonalNumberFormat> formats) {
+    public void setFormats(List<PersonalIdentityNumberFormat> formats) {
         this.formats = formats;
         this.pattern = Pattern.compile(formats.stream()
-                .map(PersonalNumberFormat::buildString)
+                .map(PersonalIdentityNumberFormat::buildString)
                 .collect(joining("|", "(?:", ")")));
     }
 
@@ -75,7 +75,7 @@ public class PersonalNumberFormats {
         this.coordinationNumber = coordinationNumber;
     }
 
-    public Predicate<PersonalNumber> getPredicate() {
+    public Predicate<PersonalIdentityNumber> getPredicate() {
         return coordinationNumber
                 ? pn -> true
                 : personalNumber -> !personalNumber.isCoordinationNumber();

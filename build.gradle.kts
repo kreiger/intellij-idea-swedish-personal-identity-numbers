@@ -1,19 +1,14 @@
 plugins {
     id("java")
-    id("org.jetbrains.intellij") version "1.5.3"
+    id("org.jetbrains.intellij") version "1.6.0"
 }
 
 group = "com.linuxgods.kreiger"
-version = "1.0-SNAPSHOT"
+version = "1.0.0"
 
 repositories {
     mavenCentral()
 }
-
-dependencies {
-    testImplementation("junit:junit:4.13.2")
-}
-
 
 // Configure Gradle IntelliJ Plugin - read more: https://github.com/JetBrains/gradle-intellij-plugin
 intellij {
@@ -22,7 +17,6 @@ intellij {
 
     plugins.set(listOf())
     updateSinceUntilBuild.set(false)
-
 }
 
 tasks {

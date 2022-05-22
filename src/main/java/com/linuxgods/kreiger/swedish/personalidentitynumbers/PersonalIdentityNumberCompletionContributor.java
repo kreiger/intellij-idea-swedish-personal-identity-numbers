@@ -4,6 +4,9 @@ import com.intellij.codeInsight.completion.*;
 import com.intellij.codeInsight.lookup.LookupElementBuilder;
 import com.intellij.psi.PsiElement;
 import com.intellij.util.ProcessingContext;
+import com.linuxgods.kreiger.swedish.personalidentitynumbers.inspection.PersonalIdentityNumbersInspection;
+import com.linuxgods.kreiger.swedish.personalidentitynumbers.model.FileRange;
+import com.linuxgods.kreiger.swedish.personalidentitynumbers.model.PersonalIdentityNumber;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -12,11 +15,11 @@ import java.util.regex.Pattern;
 
 import static com.intellij.patterns.PlatformPatterns.psiElement;
 
-public class SwedishPersonalNumberCompletionContributor extends CompletionContributor {
+public class PersonalIdentityNumberCompletionContributor extends CompletionContributor {
 
     public static final Predicate<String> NON_DIGIT = Pattern.compile("\\D").asPredicate();
 
-    public SwedishPersonalNumberCompletionContributor() {
+    public PersonalIdentityNumberCompletionContributor() {
         extend(CompletionType.BASIC, psiElement(), new CompletionProvider<>() {
             @Override
             protected void addCompletions(@NotNull CompletionParameters parameters, @NotNull ProcessingContext context, @NotNull CompletionResultSet result) {
@@ -25,14 +28,14 @@ public class SwedishPersonalNumberCompletionContributor extends CompletionContri
                 if (prefix.isEmpty() || NON_DIGIT.test(prefix)) return;
                 PsiElement originalElement = parameters.getOriginalPosition();
                 if (originalElement == null) return;
-                SwedishPersonalNumbersInspection.getInstance(originalElement).getWhitelist()
+                PersonalIdentityNumbersInspection.getInstance(originalElement).getWhitelist()
                         .entrySet().stream()
                         .flatMap(e -> {
-                            PersonalNumber personalNumber = e.getKey();
+                            PersonalIdentityNumber personalIdentityNumber = e.getKey();
                             List<FileRange> fileRanges = e.getValue();
                             return fileRanges.stream().map(fileRange -> {
-                                LookupElementBuilder lookupElementBuilder = LookupElementBuilder.create(personalNumber.toString());
-                                return SwedishPersonalNumberReferenceContributor.getPsiElement(originalElement.getProject(), personalNumber, fileRange.getFile(), fileRange.getTextRange())
+                                LookupElementBuilder lookupElementBuilder = LookupElementBuilder.create(personalIdentityNumber.toString());
+                                return PersonaldentityNumberReferenceContributor.getPsiElement(originalElement.getProject(), personalIdentityNumber, fileRange.getFile(), fileRange.getTextRange())
                                         .map(lookupElementBuilder::withPsiElement)
                                         .orElse(lookupElementBuilder);
                             });

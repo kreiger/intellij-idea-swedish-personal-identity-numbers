@@ -1,4 +1,4 @@
-package com.linuxgods.kreiger.swedish.personalidentitynumbers;
+package com.linuxgods.kreiger.swedish.personalidentitynumbers.inspection;
 
 import com.intellij.codeInspection.LocalInspectionTool;
 import com.intellij.codeInspection.LocalQuickFix;
@@ -16,8 +16,11 @@ import com.intellij.profile.codeInspection.InspectionProfileManager;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.PsiPlainText;
+import com.linuxgods.kreiger.swedish.personalidentitynumbers.inspection.quickfix.AddToWhitelistFileQuickFix;
+import com.linuxgods.kreiger.swedish.personalidentitynumbers.inspection.quickfix.AddWhitelistFileQuickFix;
+import com.linuxgods.kreiger.swedish.personalidentitynumbers.inspection.quickfix.DownloadWhitelistQuickFix;
+import com.linuxgods.kreiger.swedish.personalidentitynumbers.model.*;
 import org.jdom.Element;
-import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -26,34 +29,32 @@ import java.util.*;
 import java.util.stream.Stream;
 
 import static com.intellij.codeInspection.ProblemHighlightType.INFORMATION;
-import static com.linuxgods.kreiger.swedish.personalidentitynumbers.PersonalNumberFormat.formatWithCentury;
-import static com.linuxgods.kreiger.swedish.personalidentitynumbers.Requirement.ALLOWED;
-import static com.linuxgods.kreiger.swedish.personalidentitynumbers.Requirement.REQUIRED;
+import static com.linuxgods.kreiger.swedish.personalidentitynumbers.model.PersonalIdentityNumberFormat.formatWithCentury;
+import static com.linuxgods.kreiger.swedish.personalidentitynumbers.model.Requirement.ALLOWED;
 import static java.util.stream.Collectors.*;
 
-public class SwedishPersonalNumbersInspection extends LocalInspectionTool {
+public class PersonalIdentityNumbersInspection extends LocalInspectionTool {
 
-    public static final @NotNull String SHORT_NAME = getShortName(
-            SwedishPersonalNumbersInspection.class.getSimpleName());
-    public static final PersonalNumberFormats WHITELIST_FORMATS = new PersonalNumberFormats(
+    public static final @NotNull String SHORT_NAME = "SwedishPersonalIdentityNumbers"; // Matches plugin.xml
+    public static final PersonalIdentityNumberFormats WHITELIST_FORMATS = new PersonalIdentityNumberFormats(
             List.of(formatWithCentury(ALLOWED).setInvalidChecksumAllowed(true)));
 
     private Set<String> whitelistUrls = new LinkedHashSet<>();
     private Set<VirtualFile> whitelistFiles = null;
-    private Map<PersonalNumber, List<FileRange>> whitelist = null;
+    private Map<PersonalIdentityNumber, List<FileRange>> whitelist = null;
 
-    private PersonalNumberFormats formats = new PersonalNumberFormats(defaultFormats());
+    private PersonalIdentityNumberFormats formats = new PersonalIdentityNumberFormats(defaultFormats());
 
     @NotNull
-    static List<PersonalNumberFormat> defaultFormats() {
+    static List<PersonalIdentityNumberFormat> defaultFormats() {
         return List.of(
                 formatWithCentury(ALLOWED).setInvalidChecksumAllowed(true)
         );
     }
 
-    static SwedishPersonalNumbersInspection getInstance(@NotNull PsiElement element) {
+    public static PersonalIdentityNumbersInspection getInstance(@NotNull PsiElement element) {
         InspectionProfileImpl currentProfile = getCurrentProfile(element.getProject());
-        return (SwedishPersonalNumbersInspection) currentProfile.getUnwrappedTool(SHORT_NAME, element);
+        return (PersonalIdentityNumbersInspection) currentProfile.getUnwrappedTool(SHORT_NAME, element);
     }
 
     @NotNull
@@ -62,20 +63,17 @@ public class SwedishPersonalNumbersInspection extends LocalInspectionTool {
         return inspectionProfileManager.getCurrentProfile();
     }
 
-    @Override
-    public @NonNls @NotNull String getID() {
-        return super.getID();
-    }
-
     public void init() {
+        VirtualFileManager virtualFileManager = VirtualFileManager.getInstance();
+        whitelistUrls.removeIf(url -> null == virtualFileManager.refreshAndFindFileByUrl(url));
         whitelistFiles = null;
         whitelist = null;
     }
 
-    private Map<PersonalNumber, List<FileRange>> initWhitelist(Set<VirtualFile> whitelistFiles) {
-        Map<VirtualFile, List<PersonalNumberRange>> filesPersonalNumbers = getFilesPersonalNumbers(whitelistFiles);
+    private Map<PersonalIdentityNumber, List<FileRange>> initWhitelist(Set<VirtualFile> whitelistFiles) {
+        Map<VirtualFile, List<PersonalIdentityNumberRange>> filesPersonalNumbers = getFilesPersonalNumbers(whitelistFiles);
         this.whitelistFiles = whitelistFiles;
-        Map<PersonalNumber, List<FileRange>> whitelist = initWhitelist(filesPersonalNumbers);
+        Map<PersonalIdentityNumber, List<FileRange>> whitelist = initWhitelist(filesPersonalNumbers);
         this.whitelist = whitelist;
         return whitelist;
     }
@@ -83,7 +81,7 @@ public class SwedishPersonalNumbersInspection extends LocalInspectionTool {
     @Override
     public @NotNull PsiElementVisitor buildVisitor(@NotNull ProblemsHolder holder, boolean isOnTheFly) {
         Set<VirtualFile> whitelistFiles = getWhitelistFiles();
-        Map<PersonalNumber, List<FileRange>> whitelist = getWhitelist();
+        Map<PersonalIdentityNumber, List<FileRange>> whitelist = getWhitelist();
         return new PsiElementVisitor() {
             @Override
             public void visitElement(@NotNull PsiElement element) {
@@ -91,8 +89,8 @@ public class SwedishPersonalNumbersInspection extends LocalInspectionTool {
                 if (element.getFirstChild() != null) return;
                 formats.ranges(element.getText()).forEach(rpn -> {
                     TextRange textRange = rpn.getTextRange();
-                    PersonalNumber personalNumber = rpn.getValue();
-                    registerProblems(element, textRange, personalNumber, whitelist, whitelistFiles, holder, isOnTheFly);
+                    PersonalIdentityNumber personalIdentityNumber = rpn.getValue();
+                    registerProblems(element, textRange, personalIdentityNumber, whitelist, whitelistFiles, holder, isOnTheFly);
                 });
             }
 
@@ -107,16 +105,16 @@ public class SwedishPersonalNumbersInspection extends LocalInspectionTool {
         };
     }
 
-    private void registerProblems(PsiElement element, TextRange textRange, PersonalNumber personalNumber, Map<PersonalNumber, List<FileRange>> whitelist, Set<VirtualFile> whitelistFiles, ProblemsHolder holder, boolean isOnTheFly) {
+    private void registerProblems(PsiElement element, TextRange textRange, PersonalIdentityNumber personalIdentityNumber, Map<PersonalIdentityNumber, List<FileRange>> whitelist, Set<VirtualFile> whitelistFiles, ProblemsHolder holder, boolean isOnTheFly) {
         if (isOnTheFly) {
-            personalNumber.getValidationErrors().forEach(validationError -> {
+            personalIdentityNumber.getValidationErrors().forEach(validationError -> {
                 holder.registerProblem(element, "Swedish personal number " + validationError, INFORMATION, textRange,
                         validationError.getQuickFixes());
             });
         }
-        List<FileRange> fileRanges = whitelist.get(personalNumber);
+        List<FileRange> fileRanges = whitelist.get(personalIdentityNumber);
         if (fileRanges == null) {
-            LocalQuickFix[] quickFixes = getQuickFixes(personalNumber, whitelistFiles).toArray(LocalQuickFix[]::new);
+            LocalQuickFix[] quickFixes = getQuickFixes(personalIdentityNumber, whitelistFiles).toArray(LocalQuickFix[]::new);
             holder.registerProblem(element, textRange, "Swedish personal number not in whitelist", quickFixes);
         }
     }
@@ -130,9 +128,9 @@ public class SwedishPersonalNumbersInspection extends LocalInspectionTool {
     }
 
     @NotNull
-    public Stream<LocalQuickFix> getQuickFixes(PersonalNumber personalNumber, Set<VirtualFile> whitelistFiles) {
+    public Stream<LocalQuickFix> getQuickFixes(PersonalIdentityNumber personalIdentityNumber, Set<VirtualFile> whitelistFiles) {
         List<LocalQuickFix> fixes = this.whitelistFiles.stream()
-                .map(virtualFile -> new AddToWhitelistFileQuickFix(this, virtualFile, personalNumber))
+                .map(virtualFile -> new AddToWhitelistFileQuickFix(this, virtualFile, personalIdentityNumber))
                 .collect(toList());
         fixes.add(new AddWhitelistFileQuickFix());
         fixes.add(new DownloadWhitelistQuickFix());
@@ -141,7 +139,7 @@ public class SwedishPersonalNumbersInspection extends LocalInspectionTool {
 
     @Override
     public @Nullable JComponent createOptionsPanel() {
-        return new SwedishPersonalNumbersInspectionOptionsPanel(this);
+        return new PersonalIdentityNumbersInspectionOptionsPanel(this);
     }
 
 
@@ -152,16 +150,16 @@ public class SwedishPersonalNumbersInspection extends LocalInspectionTool {
                 .collect(toCollection(LinkedHashSet::new));
     }
 
-    private Map<PersonalNumber, List<FileRange>> initWhitelist(Map<VirtualFile, List<PersonalNumberRange>> whitelistPersonalNumbersByFile) {
+    private Map<PersonalIdentityNumber, List<FileRange>> initWhitelist(Map<VirtualFile, List<PersonalIdentityNumberRange>> whitelistPersonalNumbersByFile) {
         return whitelistPersonalNumbersByFile.entrySet().stream().flatMap(filePnrs -> {
             VirtualFile file = filePnrs.getKey();
-            List<PersonalNumberRange> pnrs = filePnrs.getValue();
+            List<PersonalIdentityNumberRange> pnrs = filePnrs.getValue();
             return pnrs.stream()
                     .map(pnr -> Map.entry(pnr.getPersonalNumber(), new FileRange(file, pnr.getTextRange())));
         }).collect(groupingBy(Map.Entry::getKey, mapping(Map.Entry::getValue, toList())));
     }
 
-    private Map<VirtualFile, List<PersonalNumberRange>> getFilesPersonalNumbers(Collection<VirtualFile> whitelistFiles) {
+    private Map<VirtualFile, List<PersonalIdentityNumberRange>> getFilesPersonalNumbers(Collection<VirtualFile> whitelistFiles) {
         FileDocumentManager fileDocumentManager = FileDocumentManager.getInstance();
         return whitelistFiles.stream().flatMap(virtualFile -> {
             Document document = fileDocumentManager.getDocument(virtualFile);
@@ -188,14 +186,14 @@ public class SwedishPersonalNumbersInspection extends LocalInspectionTool {
         init();
     }
 
-    Map<PersonalNumber, List<FileRange>> getWhitelist() {
+    public Map<PersonalIdentityNumber, List<FileRange>> getWhitelist() {
         if (null == whitelist) {
             whitelist = initWhitelist(getWhitelistFiles());
         }
         return whitelist;
     }
 
-    Set<VirtualFile> getWhitelistFiles() {
+    public Set<VirtualFile> getWhitelistFiles() {
         if (null == whitelistFiles) {
             whitelistFiles = getWhitelistFiles(whitelistUrls);
         }
@@ -215,18 +213,18 @@ public class SwedishPersonalNumbersInspection extends LocalInspectionTool {
 
     public static void addWhitelistFiles(@NotNull PsiElement element, List<VirtualFile> virtualFiles) {
         getCurrentProfile(element.getProject()).modifyProfile(model -> {
-            SwedishPersonalNumbersInspection inspection = (SwedishPersonalNumbersInspection) model.getUnwrappedTool(
+            PersonalIdentityNumbersInspection inspection = (PersonalIdentityNumbersInspection) model.getUnwrappedTool(
                     SHORT_NAME, element);
             inspection.whitelistUrls.addAll(getFileUrls(virtualFiles));
             inspection.init();
         });
     }
 
-    public PersonalNumberFormats getFormats() {
+    public PersonalIdentityNumberFormats getFormats() {
         return formats;
     }
 
-    public void setFormats(PersonalNumberFormats formats) {
+    public void setFormats(PersonalIdentityNumberFormats formats) {
         this.formats = formats;
         formats.setFormats(formats.getFormats());
     }
@@ -239,4 +237,7 @@ public class SwedishPersonalNumbersInspection extends LocalInspectionTool {
         formats.setCoordinationNumber(coordinationNumber);
     }
 
+    public void addWhitelistUrl(String url) {
+        whitelistUrls.add(url);
+    }
 }

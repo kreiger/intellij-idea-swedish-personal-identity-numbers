@@ -8,6 +8,10 @@ import com.intellij.patterns.PatternCondition;
 import com.intellij.psi.*;
 import com.intellij.psi.impl.FakePsiElement;
 import com.intellij.util.ProcessingContext;
+import com.linuxgods.kreiger.swedish.personalidentitynumbers.inspection.PersonalIdentityNumbersInspection;
+import com.linuxgods.kreiger.swedish.personalidentitynumbers.model.FileRange;
+import com.linuxgods.kreiger.swedish.personalidentitynumbers.model.PersonalIdentityNumber;
+import com.linuxgods.kreiger.swedish.personalidentitynumbers.model.PersonalIdentityNumberFormats;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -20,18 +24,18 @@ import java.util.stream.Stream;
 import static com.intellij.patterns.PlatformPatterns.psiElement;
 import static java.lang.Boolean.TRUE;
 
-public class SwedishPersonalNumberReferenceContributor extends PsiReferenceContributor {
+public class PersonaldentityNumberReferenceContributor extends PsiReferenceContributor {
 
-    private static final @NotNull Key<Boolean> KEY = Key.create(SwedishPersonalNumbersInspection.class.getSimpleName());
+    private static final @NotNull Key<Boolean> KEY = Key.create(PersonalIdentityNumbersInspection.class.getSimpleName());
 
     @Override
     public void registerReferenceProviders(@NotNull PsiReferenceRegistrar registrar) {
         registrar.registerReferenceProvider(psiElement().with(new PatternCondition<>("PersonalNumberLeaf") {
             @Override
             public boolean accepts(@NotNull PsiElement element, ProcessingContext context) {
-                SwedishPersonalNumbersInspection inspection = SwedishPersonalNumbersInspection.getInstance(element);
+                PersonalIdentityNumbersInspection inspection = PersonalIdentityNumbersInspection.getInstance(element);
                 PsiElement firstChild = element.getFirstChild();
-                PersonalNumberFormats formats = inspection.getFormats();
+                PersonalIdentityNumberFormats formats = inspection.getFormats();
                 if (firstChild == null) {
                     return formats.ranges(element.getText()).findFirst().isPresent();
                 }
@@ -47,23 +51,23 @@ public class SwedishPersonalNumberReferenceContributor extends PsiReferenceContr
         }), new PsiReferenceProvider() {
             @Override
             public PsiReference [] getReferencesByElement(@NotNull PsiElement element, @NotNull ProcessingContext context) {
-                SwedishPersonalNumbersInspection inspection = SwedishPersonalNumbersInspection.getInstance(element);
+                PersonalIdentityNumbersInspection inspection = PersonalIdentityNumbersInspection.getInstance(element);
                 if (inspection == null) {
                     return PsiReference.EMPTY_ARRAY;
                 }
-                Map<PersonalNumber, List<FileRange>> whitelist = inspection.getWhitelist();
-                PersonalNumberFormats formats = inspection.getFormats();
+                Map<PersonalIdentityNumber, List<FileRange>> whitelist = inspection.getWhitelist();
+                PersonalIdentityNumberFormats formats = inspection.getFormats();
                 return formats.ranges(element.getText())
                         .flatMap(rangedPersonalNumber -> {
-                            PersonalNumber personalNumber = rangedPersonalNumber.getValue();
+                            PersonalIdentityNumber personalIdentityNumber = rangedPersonalNumber.getValue();
                             TextRange textRange = rangedPersonalNumber.getTextRange();
-                            List<FileRange> whitelistFileRanges = whitelist.get(personalNumber);
+                            List<FileRange> whitelistFileRanges = whitelist.get(personalIdentityNumber);
                             if (whitelistFileRanges == null || whitelistFileRanges.isEmpty()) {
                                 return Stream.empty();
                             }
                             element.putUserData(KEY, TRUE);
                             return whitelistFileRanges.stream()
-                                    .flatMap(fileRange -> getPsiElement(element.getProject(), personalNumber, fileRange.getFile(), fileRange.getTextRange())
+                                    .flatMap(fileRange -> getPsiElement(element.getProject(), personalIdentityNumber, fileRange.getFile(), fileRange.getTextRange())
                                             .map(target -> new WhitelistReference(element, textRange, target))
                                             .stream())
                                     ;
@@ -78,11 +82,11 @@ public class SwedishPersonalNumberReferenceContributor extends PsiReferenceContr
     }
 
     @NotNull
-    static Optional<PsiElement> getPsiElement(Project project, PersonalNumber personalNumber, VirtualFile file, TextRange range) {
+    static Optional<PsiElement> getPsiElement(Project project, PersonalIdentityNumber personalIdentityNumber, VirtualFile file, TextRange range) {
         PsiManager psiManager = PsiManager.getInstance(project);
         return Optional.ofNullable(psiManager.findFile(file))
                 .map(psiFile -> psiFile.findElementAt(range.getStartOffset()))
-                .map(e -> new WhitelistedPersonalNumber(e, range, personalNumber.toString(), file.getPresentableName()));
+                .map(e -> new WhitelistedPersonalNumber(e, range, personalIdentityNumber.toString(), file.getPresentableName()));
     }
 
 

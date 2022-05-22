@@ -1,8 +1,9 @@
-package com.linuxgods.kreiger.swedish.personalidentitynumbers;
+package com.linuxgods.kreiger.swedish.personalidentitynumbers.model;
 
 import com.intellij.codeInspection.LocalQuickFix;
 import com.intellij.codeInspection.ProblemHighlightType;
 import com.intellij.openapi.util.TextRange;
+import com.linuxgods.kreiger.swedish.personalidentitynumbers.inspection.quickfix.ReplaceQuickFix;
 import org.jetbrains.annotations.NotNull;
 
 import java.time.Clock;
@@ -13,21 +14,21 @@ import java.util.Set;
 
 import static java.util.Objects.requireNonNull;
 
-public class PersonalNumber {
+public class PersonalIdentityNumber {
     static final Clock CLOCK = Clock.systemUTC();
     private final String personalNumber;
     private final Set<Fix> fixes;
-    private boolean checksumInvalid;
-    private boolean coordinationNumber;
+    private final boolean checksumInvalid;
+    private final boolean coordinationNumber;
 
-    private PersonalNumber(String personalNumber, Set<Fix> fixes, boolean checksumInvalid, boolean coordinationNumber) {
+    private PersonalIdentityNumber(String personalNumber, Set<Fix> fixes, boolean checksumInvalid, boolean coordinationNumber) {
         this.personalNumber = personalNumber;
         this.fixes = fixes;
         this.checksumInvalid = checksumInvalid;
         this.coordinationNumber = coordinationNumber;
     }
 
-    static PersonalNumber of(PersonalNumberPatternMatch match) {
+    static PersonalIdentityNumber of(PersonalIdentityNumberPatternMatch match) {
 
         Set<Fix> fixes = new HashSet<>();
         String fullDate = match.getDate();
@@ -70,7 +71,7 @@ public class PersonalNumber {
                     dayStart, 2), newDayOfMonth)));
         }
 
-        return new PersonalNumber(personalNumber, fixes, checksumInvalid, match.isCoordinationNumber());
+        return new PersonalIdentityNumber(personalNumber, fixes, checksumInvalid, match.isCoordinationNumber());
     }
 
     @NotNull private static String addCentury(String date, String separator) {
@@ -102,9 +103,9 @@ public class PersonalNumber {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (!(o instanceof PersonalNumber)) return false;
+        if (!(o instanceof PersonalIdentityNumber)) return false;
 
-        PersonalNumber that = (PersonalNumber) o;
+        PersonalIdentityNumber that = (PersonalIdentityNumber) o;
 
         return personalNumber.equals(that.personalNumber);
     }

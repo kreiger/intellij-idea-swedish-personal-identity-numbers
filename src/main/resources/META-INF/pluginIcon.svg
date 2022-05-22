@@ -1,2 +1,25 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 16 10"><path fill="#006aa7" d="M0,0H16V10H0Z"/><path fill="#fecc00" d="M0,4H5V0H7V4H16V6H7V10H5V6H0Z"/></svg>
+<svg
+   width="40"
+   height="40"
+   viewBox="2 0 10 10"
+   version="1.1"
+   id="svg6"
+   xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <clipPath
+       id="clip">
+      <circle
+         cx="7"
+         cy="5"
+         r="5" />
+    </clipPath>
+  </defs>
+  <path
+     fill="#006aa7"
+     d="M0,0H16V10H0Z"
+     clip-path="url(#clip)" />
+  <path
+     fill="#fecc00"
+     d="M0,4H5V0H7V4H16V6H7V10H5V6H0Z"
+     clip-path="url(#clip)" />
+</svg>
