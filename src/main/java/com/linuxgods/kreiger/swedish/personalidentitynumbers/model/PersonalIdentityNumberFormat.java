@@ -49,7 +49,9 @@ public class PersonalIdentityNumberFormat implements Cloneable {
                 + separator
                 + suffix;
 
-        personalNumber = surroundingDigitsAllowed ? "(?<![-+])" + personalNumber : "(?<![-+\\d])" + personalNumber + "(?!\\d)";
+        personalNumber = surroundingDigitsAllowed
+                ? "(?<![-+.<>=])" + personalNumber + "(?![-+.<>=])"
+                : "(?<![-+.<>=\\d])" + personalNumber + "(?![-+.<>=\\d])";
         return personalNumber;
     }
 

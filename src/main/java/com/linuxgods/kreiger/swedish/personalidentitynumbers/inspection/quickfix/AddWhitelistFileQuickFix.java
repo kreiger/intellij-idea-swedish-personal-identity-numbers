@@ -32,7 +32,6 @@ public class AddWhitelistFileQuickFix implements LocalQuickFix {
     public void applyFix(@NotNull Project project, @NotNull ProblemDescriptor descriptor) {
         FileChooserDescriptor fileChooserDescriptor = new FileChooserDescriptor(true, false, false, false, true,
                 true);
-
         FileChooser.chooseFiles(fileChooserDescriptor, project,
                 null,
                 virtualFiles -> {

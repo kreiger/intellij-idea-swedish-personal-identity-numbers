@@ -2,22 +2,22 @@ package com.linuxgods.kreiger.swedish.personalidentitynumbers.inspection;
 
 import com.intellij.codeInspection.ui.InspectionOptionsPanel;
 import com.intellij.icons.AllIcons;
+import com.intellij.ide.impl.ProjectUtil;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.CommonDataKeys;
 import com.intellij.openapi.fileChooser.FileChooser;
 import com.intellij.openapi.fileChooser.FileChooserDescriptor;
-import com.intellij.openapi.fileChooser.tree.FileRenderer;
 import com.intellij.openapi.ide.CopyPasteManager;
+import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.ComboBox;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.openapi.ui.popup.Balloon;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
+import com.intellij.openapi.vfs.VfsUtil;
 import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.ui.AnActionButton;
-import com.intellij.ui.CollectionListModel;
-import com.intellij.ui.DoubleClickListener;
-import com.intellij.ui.ToolbarDecorator;
+import com.intellij.ui.*;
 import com.intellij.ui.components.*;
+import com.intellij.util.IconUtil;
 import com.linuxgods.kreiger.swedish.personalidentitynumbers.inspection.quickfix.DownloadWhitelistQuickFix;
 import com.linuxgods.kreiger.swedish.personalidentitynumbers.model.PersonalIdentityNumberFormat;
 import com.linuxgods.kreiger.swedish.personalidentitynumbers.model.PersonalIdentityNumberFormats;
@@ -33,6 +33,7 @@ import java.awt.*;
 import java.awt.datatransfer.StringSelection;
 import java.awt.event.ItemEvent;
 import java.awt.event.MouseEvent;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
 
@@ -146,7 +147,7 @@ class PersonalIdentityNumbersInspectionOptionsPanel extends InspectionOptionsPan
         });
 
         JBList<VirtualFile> list = new JBList<>(model);
-        list.setCellRenderer(new FileRenderer().forList());
+        list.setCellRenderer(new FileRelativeToProjectDirRenderer());
         ToolbarDecorator toolbarDecorator = ToolbarDecorator.createDecorator(list, model);
         toolbarDecorator.disableUpDownActions();
         toolbarDecorator.setAddAction(button -> {
@@ -158,6 +159,11 @@ class PersonalIdentityNumbersInspectionOptionsPanel extends InspectionOptionsPan
         });
         toolbarDecorator.setMinimumSize(InspectionOptionsPanel.getMinimumListSize());
         AnActionButton downloadButton = new AnActionButton(DownloadWhitelistQuickFix.FAMILY_NAME, AllIcons.ToolbarDecorator.AddLink) {
+            @Override public void updateButton(@NotNull AnActionEvent e) {
+                e.getPresentation().setEnabled(model.getItems().stream()
+                        .allMatch(VirtualFile::isWritable));
+            }
+
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
                 DownloadWhitelistQuickFix.download(e.getProject(), model::add);
@@ -193,6 +199,33 @@ class PersonalIdentityNumbersInspectionOptionsPanel extends InspectionOptionsPan
     @NotNull
     private JComboBox<String> requirementComboBox() {
         return new ComboBox<>(new String[]{"Required", "Allowed", "Rejected"});
+    }
+
+    private static class FileRelativeToProjectDirRenderer extends ColoredListCellRenderer<VirtualFile> {
+        @Override
+        protected void customizeCellRenderer(@NotNull JList<? extends VirtualFile> list, VirtualFile file, int index, boolean selected, boolean hasFocus) {
+            Project project = ProjectUtil.getProjectForComponent(list);
+            if (project != null) {
+                setIcon(IconUtil.getIcon(file, 0, project));
+            }
+            SimpleTextAttributes attributes = file.isWritable()
+                    ? SimpleTextAttributes.REGULAR_ATTRIBUTES
+                    : SimpleTextAttributes.REGULAR_ITALIC_ATTRIBUTES;
+            append(file.getName(), attributes, true);
+            String parentPath = getPathRelativeToProjectDir(file, project).orElseGet(() -> file.getParent().getPath());
+            append("  ");
+            append(parentPath, SimpleTextAttributes.GRAY_ATTRIBUTES);
+        }
+
+        private Optional<String> getPathRelativeToProjectDir(VirtualFile file, Project project) {
+            return guessProjectDir(project)
+                    .map(projectDir -> VfsUtil.getRelativePath(file.getParent(), projectDir));
+        }
+
+        @NotNull private Optional<VirtualFile> guessProjectDir(Project project) {
+            return Optional.ofNullable(project)
+                    .map(p -> com.intellij.openapi.project.ProjectUtil.guessProjectDir(project));
+        }
     }
 
     private class PersonalNumberFormatDialog extends DialogWrapper {

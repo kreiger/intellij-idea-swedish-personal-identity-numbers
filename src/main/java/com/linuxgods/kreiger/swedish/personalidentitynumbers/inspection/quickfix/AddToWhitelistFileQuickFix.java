@@ -11,7 +11,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.linuxgods.kreiger.swedish.personalidentitynumbers.inspection.PersonalIdentityNumbersInspection;
 import com.linuxgods.kreiger.swedish.personalidentitynumbers.model.PersonalIdentityNumber;
-import com.linuxgods.kreiger.swedish.personalidentitynumbers.model.PersonalIdentityNumberRange;
+import com.linuxgods.kreiger.swedish.personalidentitynumbers.model.PersonalIdentityNumberPatternMatch;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -48,7 +48,7 @@ public class AddToWhitelistFileQuickFix implements LocalQuickFix {
             Document document = fileDocumentManager.getDocument(virtualFile);
             if (document == null) return;
             CharSequence charsSequence = document.getCharsSequence();
-            List<PersonalIdentityNumberRange> tail = WHITELIST_FORMATS.ranges(charsSequence)
+            List<PersonalIdentityNumberPatternMatch> tail = WHITELIST_FORMATS.ranges(charsSequence)
                     .collect(tail(3));
             if (tail.size() == 3) {
                 String betwixt = charsSequence.subSequence(tail.get(0).getTextRange().getEndOffset(),

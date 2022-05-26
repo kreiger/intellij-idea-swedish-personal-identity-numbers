@@ -8,23 +8,38 @@
     <vendor email="christoffer.hammarstrom@gmail.com">Christoffer Hammarström</vendor>
 
     <description><![CDATA[
-    <p>
-    Highlights <a href="https://www.skatteverket.se/servicelankar/otherlanguages/inenglish/individualsandemployees/livinginsweden/personalidentitynumberandcoordinationnumber.4.2cf1b5cd163796a5c8b4295.html">Swedish personal identity numbers</a> <br />
-    that are not on an approved whitelist.
-    </p>
-    <p>Includes support for:</p>
-    <ul>
-      <li>All languages and text files.</li>
-      <li>Downloading <a href="https://skatteverket.se/omoss/apierochoppnadata/kunskapochinspiration/alltdubehovervetaomtestpersonnummer.4.5b35a6251761e6914202df9.html">official whitelists</a> from skatteverket.se.</li>
-      <li>Navigating from number to whitelist.</li>
-      <li>Code completion of numbers from whitelist.</li>
-      <li><a href="https://www.skatteverket.se/servicelankar/otherlanguages/inenglish/individualsandemployees/coordinationnumbers.4.1657ce2817f5a993c3a7d2a.html">Coordination numbers</a> ("samordningsnummer").</li>
-      <li>Custom formats, including allowing surrounding digits, or missing millennium or checksum digit.</li>
-    </ul>
-    <p>
-    <img src="https://raw.githubusercontent.com/kreiger/intellij-idea-swedish-personal-identity-numbers/main/screenshot2.png" />
-    </p>
-    ]]>
+        <p>
+            Highlights <a
+                href="https://www.skatteverket.se/servicelankar/otherlanguages/inenglish/individualsandemployees/livinginsweden/personalidentitynumberandcoordinationnumber.4.2cf1b5cd163796a5c8b4295.html">Swedish
+            personal identity numbers</a>
+            that are not on an approved whitelist.
+        </p>
+        <p>This is important for GDPR and privacy,
+            as you should not store random people's PII in your source code.</p>
+        <p>Features:</p>
+        <ul>
+            <li>Language agnostic, supports all languages and text files.</li>
+            <li>Downloads
+                <a href="https://skatteverket.se/omoss/apierochoppnadata/kunskapochinspiration/alltdubehovervetaomtestpersonnummer.4.5b35a6251761e6914202df9.html">official whitelists for testing</a>
+                from skatteverket.se for you.
+            </li>
+            <li>Suggests replacements of numbers from whitelist.</li>
+            <li>Easy ctrl-click navigation from number to whitelist.</li>
+            <li>Whitelist files can be any format you want, so you can store extra info in the whitelist,
+                like e.g. names and addresses.
+            </li>
+            <li>Let's you code complete numbers from whitelist, so you can easily pick a whitelisted number.</li>
+            <li>Supports
+                <a href="https://www.skatteverket.se/servicelankar/otherlanguages/inenglish/individualsandemployees/coordinationnumbers.4.1657ce2817f5a993c3a7d2a.html">Coordination
+                    numbers</a> ("samordningsnummer").
+            </li>
+            <li>Exotic number formats, including allowing surrounding digits (e.g. for fixed width text files commonly sent from old COBOL systems),
+                or missing millennium or checksum digit.</li>
+        </ul>
+        <p>
+            <img src="https://raw.githubusercontent.com/kreiger/intellij-idea-swedish-personal-identity-numbers/main/screenshot2.png"/>
+        </p>
+        ]]>
     </description>
 
     <depends>com.intellij.modules.platform</depends>

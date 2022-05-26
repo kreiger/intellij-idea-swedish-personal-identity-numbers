@@ -24,7 +24,7 @@ public class PersonalIdentityNumberFormats {
         setFormats(new ArrayList<>(formats));
     }
 
-    public Stream<PersonalIdentityNumberRange> ranges(CharSequence chars) {
+    public Stream<PersonalIdentityNumberPatternMatch> ranges(CharSequence chars) {
 
         return pattern.matcher(chars)
                 .results()
@@ -44,12 +44,7 @@ public class PersonalIdentityNumberFormats {
                 })
                 .map(PersonalIdentityNumberPatternMatch::new)
                 .filter(match -> formats.get(match.getMatchedPatternIndex()).getPredicate().test(match))
-                .flatMap(match -> Stream.of(PersonalIdentityNumber.of(match))
-                        .filter(getPredicate())
-                        .map(personalNumber -> new PersonalIdentityNumberRange(
-                                personalNumber,
-                                new TextRange(match.start(), match.end())))
-                );
+                .filter(getPredicate());
     }
 
     private static boolean matchingDelimiters(char first, char last) {
@@ -75,7 +70,7 @@ public class PersonalIdentityNumberFormats {
         this.coordinationNumber = coordinationNumber;
     }
 
-    public Predicate<PersonalIdentityNumber> getPredicate() {
+    public Predicate<PersonalIdentityNumberPatternMatch> getPredicate() {
         return coordinationNumber
                 ? pn -> true
                 : personalNumber -> !personalNumber.isCoordinationNumber();

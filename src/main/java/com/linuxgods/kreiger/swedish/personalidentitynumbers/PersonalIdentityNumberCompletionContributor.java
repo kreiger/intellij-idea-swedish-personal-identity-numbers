@@ -31,10 +31,10 @@ public class PersonalIdentityNumberCompletionContributor extends CompletionContr
                 PersonalIdentityNumbersInspection.getInstance(originalElement).getWhitelist()
                         .entrySet().stream()
                         .flatMap(e -> {
-                            PersonalIdentityNumber personalIdentityNumber = e.getKey();
+                            String personalIdentityNumber = e.getKey();
                             List<FileRange> fileRanges = e.getValue();
                             return fileRanges.stream().map(fileRange -> {
-                                LookupElementBuilder lookupElementBuilder = LookupElementBuilder.create(personalIdentityNumber.toString());
+                                LookupElementBuilder lookupElementBuilder = LookupElementBuilder.create(personalIdentityNumber);
                                 return PersonaldentityNumberReferenceContributor.getPsiElement(originalElement.getProject(), personalIdentityNumber, fileRange.getFile(), fileRange.getTextRange())
                                         .map(lookupElementBuilder::withPsiElement)
                                         .orElse(lookupElementBuilder);

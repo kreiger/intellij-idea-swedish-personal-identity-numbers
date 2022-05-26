@@ -55,18 +55,20 @@ public class PersonaldentityNumberReferenceContributor extends PsiReferenceContr
                 if (inspection == null) {
                     return PsiReference.EMPTY_ARRAY;
                 }
-                Map<PersonalIdentityNumber, List<FileRange>> whitelist = inspection.getWhitelist();
+                Map<String, List<FileRange>> whitelist = inspection.getWhitelist();
                 PersonalIdentityNumberFormats formats = inspection.getFormats();
                 return formats.ranges(element.getText())
                         .flatMap(rangedPersonalNumber -> {
-                            PersonalIdentityNumber personalIdentityNumber = rangedPersonalNumber.getValue();
+                            String personalIdentityNumber = rangedPersonalNumber.getPersonalIdentityNumber().toString();
                             TextRange textRange = rangedPersonalNumber.getTextRange();
                             List<FileRange> whitelistFileRanges = whitelist.get(personalIdentityNumber);
                             if (whitelistFileRanges == null || whitelistFileRanges.isEmpty()) {
                                 return Stream.empty();
                             }
+                            VirtualFile containingFile = element.getContainingFile().getVirtualFile();
                             element.putUserData(KEY, TRUE);
                             return whitelistFileRanges.stream()
+                                    .filter(fileRange -> !fileRange.getFile().equals(containingFile) || !textRange.equals(fileRange.getTextRange()))
                                     .flatMap(fileRange -> getPsiElement(element.getProject(), personalIdentityNumber, fileRange.getFile(), fileRange.getTextRange())
                                             .map(target -> new WhitelistReference(element, textRange, target))
                                             .stream())
@@ -82,11 +84,11 @@ public class PersonaldentityNumberReferenceContributor extends PsiReferenceContr
     }
 
     @NotNull
-    static Optional<PsiElement> getPsiElement(Project project, PersonalIdentityNumber personalIdentityNumber, VirtualFile file, TextRange range) {
+    static Optional<PsiElement> getPsiElement(Project project, String personalIdentityNumber, VirtualFile file, TextRange range) {
         PsiManager psiManager = PsiManager.getInstance(project);
         return Optional.ofNullable(psiManager.findFile(file))
                 .map(psiFile -> psiFile.findElementAt(range.getStartOffset()))
-                .map(e -> new WhitelistedPersonalNumber(e, range, personalIdentityNumber.toString(), file.getPresentableName()));
+                .map(e -> new WhitelistedPersonalNumber(e, range, personalIdentityNumber, file.getPresentableName()));
     }
 
 

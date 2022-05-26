@@ -2,36 +2,46 @@ package com.linuxgods.kreiger.swedish.personalidentitynumbers.inspection.quickfi
 
 import com.intellij.codeInspection.LocalQuickFix;
 import com.intellij.codeInspection.ProblemDescriptor;
-import com.intellij.notification.*;
+import com.intellij.ide.FileSelectInContext;
+import com.intellij.ide.SelectInManager;
+import com.intellij.ide.SelectInTarget;
+import com.intellij.notification.Notification;
+import com.intellij.notification.NotificationGroup;
+import com.intellij.notification.NotificationGroupManager;
+import com.intellij.openapi.actionSystem.AnAction;
+import com.intellij.openapi.actionSystem.AnActionEvent;
+import com.intellij.openapi.actionSystem.Presentation;
 import com.intellij.openapi.fileChooser.FileChooser;
 import com.intellij.openapi.fileChooser.FileChooserDescriptor;
+import com.intellij.openapi.fileEditor.OpenFileDescriptor;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.util.IconLoader;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileManager;
+import com.intellij.openapi.wm.ToolWindowId;
+import com.intellij.util.IconUtil;
 import com.intellij.util.io.HttpRequests;
 import org.jetbrains.annotations.Nls;
 import org.jetbrains.annotations.NotNull;
 
+import javax.swing.*;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
-import static com.intellij.notification.NotificationType.*;
+import static com.intellij.notification.NotificationType.INFORMATION;
 import static com.linuxgods.kreiger.swedish.personalidentitynumbers.inspection.PersonalIdentityNumbersInspection.addWhitelistFiles;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
-import static org.apache.commons.lang3.StringUtils.*;
+import static org.apache.commons.lang3.StringUtils.substringAfterLast;
 
 public class DownloadWhitelistQuickFix implements LocalQuickFix {
 
@@ -45,6 +55,7 @@ public class DownloadWhitelistQuickFix implements LocalQuickFix {
             .collect(toList());
     private static final String FILENAME = "filename=";
     public static final String FAMILY_NAME = "Download official whitelist files from Skatteverket.se";
+    public static final @NotNull Icon NOTIFICATION_ICON = IconLoader.getIcon("/META-INF/pluginIcon.svg", DownloadWhitelistQuickFix.class);
 
     public DownloadWhitelistQuickFix() {
     }
@@ -102,7 +113,9 @@ public class DownloadWhitelistQuickFix implements LocalQuickFix {
                                         alreadyExists.add(path);
                                         return path;
                                     }
-                                    return Objects.requireNonNull(request.saveToFile(path, indicator));
+                                    path = Objects.requireNonNull(request.saveToFile(path, indicator));
+                                    path.toFile().setWritable(false, false);
+                                    return path;
                                 }));
                     } catch (IOException e) {
                         throw new UncheckedIOException(e);
@@ -113,12 +126,41 @@ public class DownloadWhitelistQuickFix implements LocalQuickFix {
                         .getNotificationGroup("Swedish Personal Identity Numbers");
                 Notification notification = alreadyExists.isEmpty()
                         ? group.createNotification("Downloaded " + paths.size() + " whitelist files from Skatteverket", INFORMATION)
-                        : group.createNotification("Downloaded " + paths.size() + " whitelist files", "Existing files were not overwritten: "+ joinFileNames(alreadyExists), INFORMATION);
+                        : group.createNotification("Downloaded " + paths.size() + " whitelist files", "Existing files were not overwritten: " + joinFileNames(alreadyExists), INFORMATION);
+                notification.setImportant(true);
+                VirtualFileManager virtualFileManager = VirtualFileManager.getInstance();
+                Collection<AnAction> selectInProjectViewActions = paths.stream()
+                        .map(virtualFileManager::refreshAndFindFileByNioPath)
+                        .filter(Objects::nonNull)
+                        .map(file -> createSelectInProjectViewAction(file, project))
+                        .collect(toList());
+
+                notification.setIcon(NOTIFICATION_ICON);
+                notification.addActions(selectInProjectViewActions);
+                notification.setDropDownText("Whitelist files...");
                 notification.notify(project);
 
                 return paths;
             }
         });
+    }
+
+    @NotNull
+    private static AnAction createSelectInProjectViewAction(VirtualFile file, @NotNull Project project) {
+        AnAction action = new AnAction() {
+            @Override public void actionPerformed(@NotNull AnActionEvent e) {
+                SelectInTarget target = SelectInManager.findSelectInTarget(ToolWindowId.PROJECT_VIEW, project);
+                if (target != null) target.selectIn(new FileSelectInContext(project, file), false);
+                OpenFileDescriptor openFileDescriptor = new OpenFileDescriptor(project, file);
+                if (openFileDescriptor.canNavigate()) {
+                    openFileDescriptor.navigate(true);
+                }
+            }
+        };
+        Presentation presentation = action.getTemplatePresentation();
+        presentation.setText(file.getPresentableName(), false);
+        presentation.setIcon(IconUtil.getIcon(file, 0, project));
+        return action;
     }
 
     @NotNull private static String joinFileNames(List<Path> alreadyExists) {
