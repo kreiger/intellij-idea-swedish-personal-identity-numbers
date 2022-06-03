@@ -3,7 +3,7 @@
 
     <name>Swedish Personal Identity Numbers</name>
 
-    <version>1.0.0</version>
+    <version>1.0.1</version>
 
     <vendor email="christoffer.hammarstrom@gmail.com">Christoffer Hammarström</vendor>
 
@@ -42,9 +42,11 @@
         ]]>
     </description>
 
+    <change-notes>Added support for IntelliJ platform 2021.2 and 2021.3.</change-notes>
+
     <depends>com.intellij.modules.platform</depends>
 
-    <idea-version since-build="213"/>
+    <idea-version since-build="212"/>
     <projectListeners>
         <listener
                 class="com.linuxgods.kreiger.swedish.personalidentitynumbers.PersonalIdentityNumberWhitelistFileListener"

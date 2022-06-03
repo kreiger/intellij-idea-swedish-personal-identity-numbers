@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "com.linuxgods.kreiger"
-version = "1.0.0"
+version = "1.0.1"
 
 repositories {
     mavenCentral()
@@ -41,6 +41,6 @@ tasks {
     }
 
     runPluginVerifier {
-        ideVersions.set(listOf("IC-2021.3.2", "IC-2022.1"))
+        ideVersions.set(listOf("IC-2021.2", "IC-2022.1"))
     }
 }

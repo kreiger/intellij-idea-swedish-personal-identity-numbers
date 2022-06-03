@@ -2,7 +2,6 @@ package com.linuxgods.kreiger.swedish.personalidentitynumbers.inspection;
 
 import com.intellij.codeInspection.ui.InspectionOptionsPanel;
 import com.intellij.icons.AllIcons;
-import com.intellij.ide.impl.ProjectUtil;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.CommonDataKeys;
 import com.intellij.openapi.fileChooser.FileChooser;
@@ -15,6 +14,7 @@ import com.intellij.openapi.ui.popup.Balloon;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.openapi.vfs.VfsUtil;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.openapi.wm.IdeFrame;
 import com.intellij.ui.*;
 import com.intellij.ui.components.*;
 import com.intellij.util.IconUtil;
@@ -204,7 +204,7 @@ class PersonalIdentityNumbersInspectionOptionsPanel extends InspectionOptionsPan
     private static class FileRelativeToProjectDirRenderer extends ColoredListCellRenderer<VirtualFile> {
         @Override
         protected void customizeCellRenderer(@NotNull JList<? extends VirtualFile> list, VirtualFile file, int index, boolean selected, boolean hasFocus) {
-            Project project = ProjectUtil.getProjectForComponent(list);
+            Project project = getProjectForComponent(list);
             if (project != null) {
                 setIcon(IconUtil.getIcon(file, 0, project));
             }
@@ -215,6 +215,20 @@ class PersonalIdentityNumbersInspectionOptionsPanel extends InspectionOptionsPan
             String parentPath = getPathRelativeToProjectDir(file, project).orElseGet(() -> file.getParent().getPath());
             append("  ");
             append(parentPath, SimpleTextAttributes.GRAY_ATTRIBUTES);
+        }
+
+        @Nullable
+        private Project getProjectForComponent(Component component) {
+            @Nullable Window window = ComponentUtil.getWindow(component);
+            if (window != null) {
+              while (window.getOwner() != null) {
+                window = window.getOwner();
+              }
+              if (window instanceof IdeFrame) {
+                return ((IdeFrame)window).getProject();
+              }
+            }
+            return null;
         }
 
         private Optional<String> getPathRelativeToProjectDir(VirtualFile file, Project project) {
