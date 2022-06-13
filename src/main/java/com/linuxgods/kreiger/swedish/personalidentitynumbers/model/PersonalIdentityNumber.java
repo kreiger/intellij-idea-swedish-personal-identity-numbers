@@ -39,7 +39,7 @@ public class PersonalIdentityNumber implements Comparable<PersonalIdentityNumber
     }
 
     public static boolean isCoordinationNumber(String personalNumber) {
-        return personalNumber.charAt(6) >= 6;
+        return personalNumber.charAt(6) >= '6';
     }
 
     @Override public int compareTo(@NotNull PersonalIdentityNumber o) {
