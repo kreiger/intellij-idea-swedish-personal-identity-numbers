@@ -28,6 +28,8 @@ import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import java.util.*;
+import java.util.function.Function;
+import java.util.function.UnaryOperator;
 import java.util.stream.Stream;
 
 import static com.intellij.codeInspection.ProblemHighlightType.INFORMATION;
@@ -164,9 +166,9 @@ public class PersonalIdentityNumbersInspection extends LocalInspectionTool {
     public Stream<LocalQuickFix> getQuickFixes(PersonalIdentityNumberPatternMatch match, int length, PatriciaTrie<List<FileRange>> whitelist, Set<VirtualFile> whitelistFiles) {
         PersonalIdentityNumber personalIdentityNumber = match.getPersonalIdentityNumber();
         List<LocalQuickFix> fixes = new ArrayList<>();
-        getLower(whitelist, personalIdentityNumber)
+        iterateSubMap(whitelist.headMap(personalIdentityNumber.toString()), SortedMap::lastKey, whitelist::previousKey, personalIdentityNumber.isCoordinationNumber())
                 .ifPresent(lower -> fixes.add(replaceFix(length, lower.formatLike(match))));
-        getHigher(whitelist, personalIdentityNumber)
+        iterateSubMap(whitelist.tailMap(personalIdentityNumber.toString()), SortedMap::firstKey, whitelist::nextKey, personalIdentityNumber.isCoordinationNumber())
                 .ifPresent(higher -> fixes.add(replaceFix(length, higher.formatLike(match))));
         getWritable(whitelistFiles)
                 .map(virtualFile -> new AddToWhitelistFileQuickFix(this, virtualFile, personalIdentityNumber))
@@ -187,24 +189,18 @@ public class PersonalIdentityNumbersInspection extends LocalInspectionTool {
                 .filter(VirtualFile::isWritable);
     }
 
-    private Optional<PersonalIdentityNumber> getHigher(PatriciaTrie<List<FileRange>> whitelist, PersonalIdentityNumber personalIdentityNumber) {
-        SortedMap<String, List<FileRange>> tailMap = whitelist.tailMap(personalIdentityNumber.toString());
-        if (tailMap.isEmpty()) return Optional.empty();
-        String higher = tailMap.firstKey();
-        while (higher != null && PersonalIdentityNumber.isCoordinationNumber(higher) != personalIdentityNumber.isCoordinationNumber()) {
-            higher = whitelist.nextKey(higher);
-        }
-        return Optional.ofNullable(higher).map(PersonalIdentityNumber::new);
+    private Optional<PersonalIdentityNumber> iterateSubMap(SortedMap<String, ?> subMap, Function<SortedMap<String, ?>, String> firstFunction, UnaryOperator<String> nextFunction, boolean coordinationNumber) {
+        return subMapStream(subMap, firstFunction, nextFunction)
+                .map(PersonalIdentityNumber::new)
+                .filter(number -> number.isCoordinationNumber() == coordinationNumber)
+                .findFirst();
     }
 
-    private Optional<PersonalIdentityNumber> getLower(PatriciaTrie<List<FileRange>> whitelist, PersonalIdentityNumber personalIdentityNumber) {
-        SortedMap<String, List<FileRange>> headMap = whitelist.headMap(personalIdentityNumber.toString());
-        if (headMap.isEmpty()) return Optional.empty();
-        String lower = headMap.lastKey();
-        while (lower != null && PersonalIdentityNumber.isCoordinationNumber(lower) != personalIdentityNumber.isCoordinationNumber()) {
-            lower = whitelist.previousKey(lower);
-        }
-        return Optional.ofNullable(lower).map(PersonalIdentityNumber::new);
+    @NotNull
+    private Stream<String> subMapStream(SortedMap<String, ?> subMap, Function<SortedMap<String, ?>, String> firstFunction, UnaryOperator<String> nextFunction) {
+        return Stream.of(subMap)
+                .filter(sm -> !sm.isEmpty())
+                .flatMap(sm -> Stream.iterate(firstFunction.apply(sm), Objects::nonNull, nextFunction));
     }
 
     @NotNull private ReplaceQuickFix replaceFix(int length, String replacement) {
