@@ -21,6 +21,7 @@ import com.linuxgods.kreiger.swedish.personalidentitynumbers.inspection.quickfix
 import com.linuxgods.kreiger.swedish.personalidentitynumbers.inspection.quickfix.DownloadWhitelistQuickFix;
 import com.linuxgods.kreiger.swedish.personalidentitynumbers.inspection.quickfix.ReplaceQuickFix;
 import com.linuxgods.kreiger.swedish.personalidentitynumbers.model.*;
+import org.apache.commons.collections4.trie.PatriciaTrie;
 import org.jdom.Element;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -43,7 +44,7 @@ public class PersonalIdentityNumbersInspection extends LocalInspectionTool {
 
     private Set<String> whitelistUrls = new LinkedHashSet<>();
     private Set<VirtualFile> whitelistFiles = null;
-    private NavigableMap<String, List<FileRange>> whitelist = null;
+    private PatriciaTrie<List<FileRange>> whitelist = null;
 
     private PersonalIdentityNumberFormats formats = new PersonalIdentityNumberFormats(defaultFormats());
 
@@ -73,10 +74,10 @@ public class PersonalIdentityNumbersInspection extends LocalInspectionTool {
         whitelist = null;
     }
 
-    private NavigableMap<String, List<FileRange>> initWhitelist(Set<VirtualFile> whitelistFiles) {
+    private PatriciaTrie<List<FileRange>> initWhitelist(Set<VirtualFile> whitelistFiles) {
         Map<VirtualFile, List<PersonalIdentityNumberPatternMatch>> filesPersonalNumbers = getFilesPersonalNumbers(whitelistFiles);
         this.whitelistFiles = whitelistFiles;
-        NavigableMap<String, List<FileRange>> whitelist = initWhitelist(filesPersonalNumbers);
+        PatriciaTrie<List<FileRange>> whitelist = initWhitelist(filesPersonalNumbers);
         this.whitelist = whitelist;
         return whitelist;
     }
@@ -84,7 +85,7 @@ public class PersonalIdentityNumbersInspection extends LocalInspectionTool {
     @Override
     public @NotNull PsiElementVisitor buildVisitor(@NotNull ProblemsHolder holder, boolean isOnTheFly) {
         Set<VirtualFile> whitelistFiles = getWhitelistFiles();
-        NavigableMap<String, List<FileRange>> whitelist = getWhitelist();
+        PatriciaTrie<List<FileRange>> whitelist = getWhitelist();
         return new PsiElementVisitor() {
             @Override
             public void visitElement(@NotNull PsiElement element) {
@@ -92,7 +93,6 @@ public class PersonalIdentityNumbersInspection extends LocalInspectionTool {
                 if (element.getFirstChild() != null) return;
                 formats.ranges(element.getText()).forEach(rpn -> {
                     TextRange textRange = rpn.getTextRange();
-                    PersonalIdentityNumber personalIdentityNumber = rpn.getPersonalIdentityNumber();
                     registerProblems(element, textRange, rpn, whitelist, whitelistFiles, holder, isOnTheFly);
                 });
             }
@@ -108,7 +108,7 @@ public class PersonalIdentityNumbersInspection extends LocalInspectionTool {
         };
     }
 
-    private void registerProblems(PsiElement element, TextRange textRange, PersonalIdentityNumberPatternMatch match, NavigableMap<String, List<FileRange>> whitelist, Set<VirtualFile> whitelistFiles, ProblemsHolder holder, boolean isOnTheFly) {
+    private void registerProblems(PsiElement element, TextRange textRange, PersonalIdentityNumberPatternMatch match, PatriciaTrie<List<FileRange>> whitelist, Set<VirtualFile> whitelistFiles, ProblemsHolder holder, boolean isOnTheFly) {
         PersonalIdentityNumber personalIdentityNumber = match.getPersonalIdentityNumber();
         if (isOnTheFly) {
             match.getFixes().forEach(fix -> {
@@ -161,7 +161,7 @@ public class PersonalIdentityNumbersInspection extends LocalInspectionTool {
     }
 
     @NotNull
-    public Stream<LocalQuickFix> getQuickFixes(PersonalIdentityNumberPatternMatch match, int length, NavigableMap<String, List<FileRange>> whitelist, Set<VirtualFile> whitelistFiles) {
+    public Stream<LocalQuickFix> getQuickFixes(PersonalIdentityNumberPatternMatch match, int length, PatriciaTrie<List<FileRange>> whitelist, Set<VirtualFile> whitelistFiles) {
         PersonalIdentityNumber personalIdentityNumber = match.getPersonalIdentityNumber();
         List<LocalQuickFix> fixes = new ArrayList<>();
         getLower(whitelist, personalIdentityNumber)
@@ -187,18 +187,22 @@ public class PersonalIdentityNumbersInspection extends LocalInspectionTool {
                 .filter(VirtualFile::isWritable);
     }
 
-    private Optional<PersonalIdentityNumber> getHigher(NavigableMap<String, List<FileRange>> whitelist, PersonalIdentityNumber personalIdentityNumber) {
-        String higher = whitelist.higherKey(personalIdentityNumber.toString());
+    private Optional<PersonalIdentityNumber> getHigher(PatriciaTrie<List<FileRange>> whitelist, PersonalIdentityNumber personalIdentityNumber) {
+        SortedMap<String, List<FileRange>> tailMap = whitelist.tailMap(personalIdentityNumber.toString());
+        if (tailMap.isEmpty()) return Optional.empty();
+        String higher = tailMap.firstKey();
         while (higher != null && PersonalIdentityNumber.isCoordinationNumber(higher) != personalIdentityNumber.isCoordinationNumber()) {
-            higher = whitelist.higherKey(higher);
+            higher = whitelist.nextKey(higher);
         }
         return Optional.ofNullable(higher).map(PersonalIdentityNumber::new);
     }
 
-    private Optional<PersonalIdentityNumber> getLower(NavigableMap<String, List<FileRange>> whitelist, PersonalIdentityNumber personalIdentityNumber) {
-        String lower = whitelist.lowerKey(personalIdentityNumber.toString());
+    private Optional<PersonalIdentityNumber> getLower(PatriciaTrie<List<FileRange>> whitelist, PersonalIdentityNumber personalIdentityNumber) {
+        SortedMap<String, List<FileRange>> headMap = whitelist.headMap(personalIdentityNumber.toString());
+        if (headMap.isEmpty()) return Optional.empty();
+        String lower = headMap.lastKey();
         while (lower != null && PersonalIdentityNumber.isCoordinationNumber(lower) != personalIdentityNumber.isCoordinationNumber()) {
-            lower = whitelist.lowerKey(lower);
+            lower = whitelist.previousKey(lower);
         }
         return Optional.ofNullable(lower).map(PersonalIdentityNumber::new);
     }
@@ -223,13 +227,13 @@ public class PersonalIdentityNumbersInspection extends LocalInspectionTool {
                 .collect(toCollection(LinkedHashSet::new));
     }
 
-    private NavigableMap<String, List<FileRange>> initWhitelist(Map<VirtualFile, List<PersonalIdentityNumberPatternMatch>> whitelistPersonalNumbersByFile) {
+    private PatriciaTrie<List<FileRange>> initWhitelist(Map<VirtualFile, List<PersonalIdentityNumberPatternMatch>> whitelistPersonalNumbersByFile) {
         return whitelistPersonalNumbersByFile.entrySet().stream().flatMap(filePnrs -> {
             VirtualFile file = filePnrs.getKey();
             List<PersonalIdentityNumberPatternMatch> pnrs = filePnrs.getValue();
             return pnrs.stream()
                     .map(pnr -> Map.entry(pnr.getPersonalIdentityNumber().toString(), new FileRange(file, pnr.getTextRange())));
-        }).collect(groupingBy(Map.Entry::getKey, TreeMap::new, mapping(Map.Entry::getValue, toList())));
+        }).collect(groupingBy(Map.Entry::getKey, PatriciaTrie::new, mapping(Map.Entry::getValue, toList())));
     }
 
     private Map<VirtualFile, List<PersonalIdentityNumberPatternMatch>> getFilesPersonalNumbers(Collection<VirtualFile> whitelistFiles) {
@@ -260,7 +264,7 @@ public class PersonalIdentityNumbersInspection extends LocalInspectionTool {
         init();
     }
 
-    public NavigableMap<String, List<FileRange>> getWhitelist() {
+    public PatriciaTrie<List<FileRange>> getWhitelist() {
         if (null == whitelist) {
             whitelist = initWhitelist(getWhitelistFiles());
         }
