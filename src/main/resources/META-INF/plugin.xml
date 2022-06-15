@@ -3,7 +3,7 @@
 
     <name>Swedish Personal Identity Numbers Inspection</name>
 
-    <version>1.0.1</version>
+    <version>1.0.2</version>
 
     <vendor email="christoffer.hammarstrom@gmail.com">Christoffer Hammarström</vendor>
 
@@ -36,7 +36,19 @@
         ]]>
     </description>
 
-    <change-notes>Added support for IntelliJ platform 2021.2 and 2021.3.</change-notes>
+    <change-notes><![CDATA[
+        <dl>
+        <dt>1.0.2</dt>
+        <dd><ul>
+            <li>Fixed coordination numbers not being detected correctly.</li>
+            <li>Improved plugin description.</li>
+        </ul></dd>
+        <dt>1.0.1</dt>
+        <dd><ul>
+            <li>Added support for IntelliJ platform 2021.2 and 2021.3.</li>
+        </ul></dd>
+        </dl>
+    ]]></change-notes>
 
     <depends>com.intellij.modules.platform</depends>
 
