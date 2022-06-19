@@ -1,9 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <svg
    width="40"
    height="40"
    viewBox="2 0 10 10"
    version="1.1"
-   id="svg6"
    xmlns="http://www.w3.org/2000/svg">
   <defs>
     <clipPath
@@ -13,13 +13,47 @@
          cy="5"
          r="5" />
     </clipPath>
+    <clipPath
+       id="clipPath">
+      <circle
+         style="fill:none;fill-opacity:1;stroke:#767a8a;stroke-width:0.278925;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+         cx="10.420455"
+         cy="5.9204545"
+         r="1.394628" />
+    </clipPath>
   </defs>
+  <g
+     transform="translate(-0.125,-0.125)"
+     style="opacity:0.5">
+    <path
+       fill="#006aa7"
+       d="M 0,0 H 16 V 10 H 0 Z"
+       clip-path="url(#clip)"
+       transform="matrix(0.625,0,0,0.625,2,1.25)" />
+    <path
+       fill="#fecc00"
+       d="M 0,4 H 5 V 0 h 2 v 4 h 9 V 6 H 7 v 4 H 5 V 6 H 0 Z"
+       clip-path="url(#clip)"
+       transform="matrix(0.625,0,0,0.625,2,1.25)" />
+  </g>
+  <g
+     transform="matrix(2.4444444,0,0,2.4444444,-19.222222,-10.222222)"
+     clip-path="url(#clipPath)">
+    <path
+       fill="#9aa7b0"
+       d="m 10.625,6.125 c 0.310781,0 0.5625,-0.2517188 0.5625,-0.5625 C 11.1875,5.2517187 10.935781,5 10.625,5 c -0.310781,0 -0.5625,0.2517187 -0.5625,0.5625 0,0.3107812 0.251719,0.5625 0.5625,0.5625 z"
+       style="stroke-width:0.25" />
+    <path
+       fill="#40b6e0"
+       d="m 10.625,6.40625 c -0.375469,0 -1.125,0.1884375 -1.125,0.5625 V 7.25 h 2.25 V 6.96875 c 0,-0.3740625 -0.749531,-0.5625 -1.125,-0.5625 z"
+       style="stroke-width:0.25" />
+  </g>
+  <circle
+     style="fill:none;fill-opacity:1;stroke:#767a8a;stroke-width:0.681818;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+     cx="6.25"
+     cy="4.25"
+     r="3.4090908" />
   <path
-     fill="#006aa7"
-     d="M0,0H16V10H0Z"
-     clip-path="url(#clip)" />
-  <path
-     fill="#fecc00"
-     d="M0,4H5V0H7V4H16V6H7V10H5V6H0Z"
-     clip-path="url(#clip)" />
+     style="fill:none;stroke:#767a8a;stroke-width:0.714286;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+     d="M 11.142857,9.1428569 8.8571431,6.8571431" />
 </svg>
