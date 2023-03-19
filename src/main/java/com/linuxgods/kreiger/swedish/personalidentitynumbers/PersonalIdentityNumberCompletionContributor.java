@@ -23,7 +23,6 @@ public class PersonalIdentityNumberCompletionContributor extends CompletionContr
         extend(CompletionType.BASIC, psiElement(), new CompletionProvider<>() {
             @Override
             protected void addCompletions(@NotNull CompletionParameters parameters, @NotNull ProcessingContext context, @NotNull CompletionResultSet result) {
-                result.addLookupAdvertisement("Swedish Personal Identity Numbers");
                 PrefixMatcher prefixMatcher = result.getPrefixMatcher();
                 String prefix = prefixMatcher.getPrefix();
                 if (prefix.length() < 4 || NON_DIGIT.test(prefix)) return;
@@ -36,7 +35,8 @@ public class PersonalIdentityNumberCompletionContributor extends CompletionContr
                             String personalIdentityNumber = e.getKey();
                             List<FileRange> fileRanges = e.getValue();
                             return fileRanges.stream().map(fileRange -> {
-                                LookupElementBuilder lookupElementBuilder = LookupElementBuilder.create(personalIdentityNumber);
+                                LookupElementBuilder lookupElementBuilder = LookupElementBuilder.create(personalIdentityNumber)
+                                        .withTypeText(fileRange.getFile().getName(), true);
                                 return PersonaldentityNumberReferenceContributor.getPsiElement(originalElement.getProject(), personalIdentityNumber, fileRange.getFile(), fileRange.getTextRange())
                                         .map(lookupElementBuilder::withPsiElement)
                                         .orElse(lookupElementBuilder);
