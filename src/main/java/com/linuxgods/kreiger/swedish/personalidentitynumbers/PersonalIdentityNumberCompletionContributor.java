@@ -23,13 +23,15 @@ public class PersonalIdentityNumberCompletionContributor extends CompletionContr
         extend(CompletionType.BASIC, psiElement(), new CompletionProvider<>() {
             @Override
             protected void addCompletions(@NotNull CompletionParameters parameters, @NotNull ProcessingContext context, @NotNull CompletionResultSet result) {
+                result.addLookupAdvertisement("Swedish Personal Identity Numbers");
                 PrefixMatcher prefixMatcher = result.getPrefixMatcher();
                 String prefix = prefixMatcher.getPrefix();
-                if (prefix.isEmpty() || NON_DIGIT.test(prefix)) return;
+                if (prefix.length() < 4 || NON_DIGIT.test(prefix)) return;
                 PsiElement originalElement = parameters.getOriginalPosition();
                 if (originalElement == null) return;
                 PersonalIdentityNumbersInspection.getInstance(originalElement).getWhitelist()
                         .entrySet().stream()
+                        .filter(e -> e.getKey().startsWith(prefix) || e.getKey().substring(2).startsWith(prefix))
                         .flatMap(e -> {
                             String personalIdentityNumber = e.getKey();
                             List<FileRange> fileRanges = e.getValue();
