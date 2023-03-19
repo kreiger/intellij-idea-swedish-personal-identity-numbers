@@ -1,22 +1,22 @@
 plugins {
     id("java")
-    id("org.jetbrains.intellij") version "1.6.0"
+    id("org.jetbrains.intellij") version "1.13.2"
 }
 
 group = "com.linuxgods.kreiger"
-version = "1.0.2"
+version = "1.0.3"
 
 repositories {
     mavenCentral()
 }
 
 dependencies {
-    implementation("org.apache.commons:commons-collections4:4.0")
+    implementation("org.apache.commons:commons-collections4:4.3")
 }
 
 // Configure Gradle IntelliJ Plugin - read more: https://github.com/JetBrains/gradle-intellij-plugin
 intellij {
-    version.set("2022.1.1")
+    version.set("2022.3.3")
     type.set("IC") // Target IDE Platform
 
     plugins.set(listOf())
@@ -45,6 +45,6 @@ tasks {
     }
 
     runPluginVerifier {
-        ideVersions.set(listOf("IC-2021.2", "IC-2022.1"))
+        ideVersions.set(listOf("IC-2021.2", "IC-2022.3.3"))
     }
 }
