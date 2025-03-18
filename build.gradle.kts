@@ -12,6 +12,7 @@ repositories {
 
 dependencies {
     implementation("org.apache.commons:commons-collections4:4.3")
+    implementation("org.apache.jena:apache-jena:5.3.0")
 }
 
 // Configure Gradle IntelliJ Plugin - read more: https://github.com/JetBrains/gradle-intellij-plugin
@@ -41,7 +42,7 @@ tasks {
     }
 
     runIde {
-        jvmArgs("-Xmx4096m")
+        jvmArgs("-Xmx8192m")
     }
 
     runPluginVerifier {

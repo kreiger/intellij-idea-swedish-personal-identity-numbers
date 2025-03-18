@@ -43,11 +43,12 @@ import static com.linuxgods.kreiger.swedish.personalidentitynumbers.model.Person
 import static com.linuxgods.kreiger.swedish.personalidentitynumbers.model.Requirement.ALLOWED;
 import static com.linuxgods.kreiger.swedish.personalidentitynumbers.model.Requirement.REJECTED;
 
-class PersonalIdentityNumbersInspectionOptionsPanel extends InspectionOptionsPanel {
+class PersonalIdentityNumbersInspectionOptionsPanel extends JPanel {
     public static final String SKATTEVERKET_URL = "https://skatteverket.se/omoss/apierochoppnadata/kunskapochinspiration/alltdubehovervetaomtestpersonnummer.4.5b35a6251761e6914202df9.html";
     public static final String COORDINATION_NUMBERS_URL = "https://www.skatteverket.se/servicelankar/otherlanguages/inenglish/individualsandemployees/coordinationnumbers.4.1657ce2817f5a993c3a7d2a.html";
 
     PersonalIdentityNumbersInspectionOptionsPanel(PersonalIdentityNumbersInspection inspection) {
+        super(new MigLayout("fillx, ins 0"));
         PersonalIdentityNumberFormats formats = inspection.getFormats();
         JBTabbedPane tabs = new JBTabbedPane(SwingConstants.TOP);
         tabs.add("Personal number formats", getFormatsPanel(tabs, inspection, formats));
@@ -87,7 +88,7 @@ class PersonalIdentityNumbersInspectionOptionsPanel extends InspectionOptionsPan
         });
         JBList<PersonalIdentityNumberFormat> list = new JBList<>(listModel);
         ToolbarDecorator toolbarDecorator = ToolbarDecorator.createDecorator(list);
-        toolbarDecorator.setPreferredSize(getMinimumListSize());
+        toolbarDecorator.setPreferredSize(InspectionOptionsPanel.getMinimumListSize());
         toolbarDecorator.setAddAction(anActionButton -> {
             PersonalIdentityNumberFormat patternBuilder = formatWithCentury(ALLOWED);
             if (new PersonalNumberFormatDialog(patternBuilder).showAndGet()) {
@@ -160,6 +161,7 @@ class PersonalIdentityNumbersInspectionOptionsPanel extends InspectionOptionsPan
         toolbarDecorator.setMinimumSize(InspectionOptionsPanel.getMinimumListSize());
         AnActionButton downloadButton = new AnActionButton(DownloadWhitelistQuickFix.FAMILY_NAME, AllIcons.ToolbarDecorator.AddLink) {
             @Override public void updateButton(@NotNull AnActionEvent e) {
+
                 e.getPresentation().setEnabled(model.getItems().stream()
                         .allMatch(VirtualFile::isWritable));
             }
@@ -258,9 +260,9 @@ class PersonalIdentityNumbersInspectionOptionsPanel extends InspectionOptionsPan
             return centerPanel;
         }
 
-        private class PersonalNumberFormatPanel extends InspectionOptionsPanel {
+        private class PersonalNumberFormatPanel extends JPanel {
             public PersonalNumberFormatPanel(PersonalIdentityNumberFormat pb) {
-
+                super(new MigLayout("fillx, ins 0"));
                 JLabel formatLabel = new JLabel(pb.formatString());
                 add(formatLabel, "gapy 5, align center, span 3");
 

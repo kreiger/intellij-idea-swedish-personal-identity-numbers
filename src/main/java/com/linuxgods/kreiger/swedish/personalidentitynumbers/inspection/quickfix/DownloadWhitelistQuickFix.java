@@ -2,6 +2,7 @@ package com.linuxgods.kreiger.swedish.personalidentitynumbers.inspection.quickfi
 
 import com.intellij.codeInspection.LocalQuickFix;
 import com.intellij.codeInspection.ProblemDescriptor;
+import com.intellij.icons.AllIcons;
 import com.intellij.ide.FileSelectInContext;
 import com.intellij.ide.SelectInManager;
 import com.intellij.ide.SelectInTarget;
@@ -25,6 +26,10 @@ import com.intellij.openapi.vfs.VirtualFileManager;
 import com.intellij.openapi.wm.ToolWindowId;
 import com.intellij.util.IconUtil;
 import com.intellij.util.io.HttpRequests;
+import org.apache.jena.rdf.model.*;
+import org.apache.jena.riot.RDFLanguages;
+import org.apache.jena.riot.RDFParser;
+import org.apache.jena.vocabulary.DCAT;
 import org.jetbrains.annotations.Nls;
 import org.jetbrains.annotations.NotNull;
 
@@ -35,10 +40,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.function.Consumer;
-import java.util.stream.Stream;
 
 import static com.intellij.notification.NotificationType.INFORMATION;
+import static com.intellij.openapi.ui.MessageType.*;
+import static com.linuxgods.kreiger.swedish.personalidentitynumbers.inspection.PersonalIdentityNumbersInspection.WHITELISTS_ORDER;
 import static com.linuxgods.kreiger.swedish.personalidentitynumbers.inspection.PersonalIdentityNumbersInspection.addWhitelistFiles;
+import static java.util.Collections.*;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 import static org.apache.commons.lang3.StringUtils.substringAfterLast;
@@ -46,13 +53,9 @@ import static org.apache.commons.lang3.StringUtils.substringAfterLast;
 public class DownloadWhitelistQuickFix implements LocalQuickFix {
 
     private final static String BASE_URL = "https://skatteverket.entryscape.net/store/9/resource/";
+    private final static String PERSONNUMMER_CATALOG_URL = BASE_URL+"150";
+    private final static String SAMORDNINGS_NUMMER_CATALOG_URL = BASE_URL+"155";
 
-    private final static List<String> URLS = Stream.concat(
-                    Stream.of("149", "535", "686", "1026", "1271", "1580"),
-                    Stream.of("154", "1027", "1272", "1581")
-            )
-            .map(s -> BASE_URL + s)
-            .collect(toList());
     private static final String FILENAME = "filename=";
     public static final String FAMILY_NAME = "Download official whitelist files from Skatteverket.se";
     public static final @NotNull Icon NOTIFICATION_ICON = IconLoader.getIcon("/META-INF/pluginIcon.svg", DownloadWhitelistQuickFix.class);
@@ -90,8 +93,9 @@ public class DownloadWhitelistQuickFix implements LocalQuickFix {
                     List<Path> paths = download(project, dir);
                     Objects.requireNonNull(paths);
                     List<VirtualFile> files = paths.stream()
-                            .map(virtualFileManager::refreshAndFindFileByNioPath)
-                            .collect(toList());
+                                                  .map(virtualFileManager::refreshAndFindFileByNioPath)
+                                                  .sorted(WHITELISTS_ORDER)
+                                                  .collect(toList());
                     filesConsumer.accept(files);
                 });
     }
@@ -101,7 +105,36 @@ public class DownloadWhitelistQuickFix implements LocalQuickFix {
             @Override public List<Path> compute(@NotNull ProgressIndicator indicator) {
                 List<Path> paths = new ArrayList<>();
                 List<Path> alreadyExists = new ArrayList<>();
-                for (String url : URLS) {
+                NotificationGroup group = NotificationGroupManager.getInstance()
+                                              .getNotificationGroup("Swedish Personal Identity Numbers");
+                List<String> urls = new ArrayList<>();
+                try {
+                    HttpRequests.request(PERSONNUMMER_CATALOG_URL)
+                        .productNameAsUserAgent()
+                        .connect(request -> {
+                            Model model = ModelFactory.createDefaultModel();
+                            RDFParser.source(request.getInputStream())
+                                .lang(RDFLanguages.RDFXML)
+                                .parse(model);
+
+                            Property downloadURL = DCAT.downloadURL;
+                            model.listStatements(null, downloadURL, (RDFNode) null).forEachRemaining(statement -> {
+                                RDFNode object = statement.getObject();
+                                if (object.isURIResource()) {
+                                    urls.add(object.asResource().getURI());
+                                }
+                            });
+                            return null;
+                        });
+                } catch (IOException e) {
+                    Notification failure = group.createNotification("Failed to download whitelist catalog from "+ PERSONNUMMER_CATALOG_URL, WARNING);
+                    failure.setIcon(AllIcons.General.Warning);
+                    failure.notify(project);
+                    return emptyList();
+                }
+
+                List<String> failedUrls = new ArrayList<>();
+                for (String url : urls) {
                     try {
                         paths.add(HttpRequests.request(url)
                                 .productNameAsUserAgent()
@@ -118,22 +151,26 @@ public class DownloadWhitelistQuickFix implements LocalQuickFix {
                                     return path;
                                 }));
                     } catch (IOException e) {
-                        throw new UncheckedIOException(e);
+                        failedUrls.add(url);
                     }
                 }
 
-                NotificationGroup group = NotificationGroupManager.getInstance()
-                        .getNotificationGroup("Swedish Personal Identity Numbers");
+                if (!failedUrls.isEmpty()) {
+                    Notification failure = group.createNotification("Failed to download "+failedUrls.size()+" whitelist files", WARNING);
+                    failure.setIcon(AllIcons.General.Warning);
+                    failure.notify(project);
+                }
                 Notification notification = alreadyExists.isEmpty()
                         ? group.createNotification("Downloaded " + paths.size() + " whitelist files from Skatteverket", INFORMATION)
                         : group.createNotification("Downloaded " + paths.size() + " whitelist files", "Existing files were not overwritten: " + joinFileNames(alreadyExists), INFORMATION);
                 notification.setImportant(true);
                 VirtualFileManager virtualFileManager = VirtualFileManager.getInstance();
                 Collection<AnAction> selectInProjectViewActions = paths.stream()
-                        .map(virtualFileManager::refreshAndFindFileByNioPath)
-                        .filter(Objects::nonNull)
-                        .map(file -> createSelectInProjectViewAction(file, project))
-                        .collect(toList());
+                                                                      .map(virtualFileManager::refreshAndFindFileByNioPath)
+                                                                      .filter(Objects::nonNull)
+                                                                      .sorted(WHITELISTS_ORDER)
+                                                                      .map(file -> createSelectInProjectViewAction(file, project))
+                                                                      .collect(toList());
 
                 notification.setIcon(NOTIFICATION_ICON);
                 notification.addActions(selectInProjectViewActions);
