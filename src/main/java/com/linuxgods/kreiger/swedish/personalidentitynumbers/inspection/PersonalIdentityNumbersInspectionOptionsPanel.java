@@ -48,16 +48,22 @@ class PersonalIdentityNumbersInspectionOptionsPanel extends JPanel {
     public static final String COORDINATION_NUMBERS_URL = "https://www.skatteverket.se/servicelankar/otherlanguages/inenglish/individualsandemployees/coordinationnumbers.4.1657ce2817f5a993c3a7d2a.html";
 
     PersonalIdentityNumbersInspectionOptionsPanel(PersonalIdentityNumbersInspection inspection) {
-        super(new MigLayout("fillx, ins 0"));
-        PersonalIdentityNumberFormats formats = inspection.getFormats();
+        super(new BorderLayout());
+
         JBTabbedPane tabs = new JBTabbedPane(SwingConstants.TOP);
-        tabs.add("Personal number formats", getFormatsPanel(tabs, inspection, formats));
-        tabs.add("Whitelist files", getWhitelistPanel(inspection));
-        add(tabs, "span, wrap, grow");
+
+        JPanel formatsPanel = getFormatsPanel(tabs, inspection);
+        tabs.add("Personal number formats", formatsPanel);
+
+        JPanel whitelistPanel = getWhitelistPanel(inspection);
+        tabs.add("Whitelist files", whitelistPanel);
+
+        add(tabs);
     }
 
     @NotNull
-    private JPanel getFormatsPanel(JBTabbedPane tabs, PersonalIdentityNumbersInspection inspection, PersonalIdentityNumberFormats formats) {
+    private JPanel getFormatsPanel(JBTabbedPane tabs, PersonalIdentityNumbersInspection inspection) {
+        PersonalIdentityNumberFormats formats = inspection.getFormats();
         CollectionListModel<PersonalIdentityNumberFormat> listModel = new CollectionListModel<>(formats.getFormats(), true);
         AnActionButton resetButton = new AnActionButton("Reset to default", AllIcons.Actions.Rollback) {
             @Override public void updateButton(@NotNull AnActionEvent e) {
@@ -88,7 +94,7 @@ class PersonalIdentityNumbersInspectionOptionsPanel extends JPanel {
         });
         JBList<PersonalIdentityNumberFormat> list = new JBList<>(listModel);
         ToolbarDecorator toolbarDecorator = ToolbarDecorator.createDecorator(list);
-        toolbarDecorator.setPreferredSize(InspectionOptionsPanel.getMinimumListSize());
+        toolbarDecorator.setMinimumSize(InspectionOptionsPanel.getMinimumListSize());
         toolbarDecorator.setAddAction(anActionButton -> {
             PersonalIdentityNumberFormat patternBuilder = formatWithCentury(ALLOWED);
             if (new PersonalNumberFormatDialog(patternBuilder).showAndGet()) {
@@ -107,13 +113,15 @@ class PersonalIdentityNumbersInspectionOptionsPanel extends JPanel {
         toolbarDecorator.addExtraAction(resetButton);
         toolbarDecorator.setRemoveActionUpdater(e -> list.getModel().getSize() > 1);
 
-        JPanel panel = new JPanel(new MigLayout("fillx, ins 0"));
-        panel.add(toolbarDecorator.createPanel(), "growx, wrap");
-        panel.add(checkBox("Allow coordination numbers", formats.getCoordinationNumber(),
+        JPanel panel = new JPanel(new BorderLayout());
+        JPanel south = new JPanel(new MigLayout("fillx, ins 0"));
+        panel.add(toolbarDecorator.createPanel());
+        panel.add(south, BorderLayout.SOUTH);
+        south.add(checkBox("Allow coordination numbers", formats.getCoordinationNumber(),
                 formats::setCoordinationNumber), "split");
-        panel.add(new BrowserLink(External_link_arrow, "\"samordningsnummer\"",
+        south.add(new BrowserLink(External_link_arrow, "\"samordningsnummer\"",
                 COORDINATION_NUMBERS_URL, COORDINATION_NUMBERS_URL), "align right, wrap");
-        panel.add(new ActionLink("Manage whitelist files...", e -> {
+        south.add(new ActionLink("Manage whitelist files...", e -> {
             tabs.setSelectedIndex(1);
         }), "wrap");
         return panel;
@@ -172,11 +180,12 @@ class PersonalIdentityNumbersInspectionOptionsPanel extends JPanel {
             }
         };
         toolbarDecorator.addExtraAction(downloadButton);
-        JPanel panel = new JPanel(new MigLayout("fillx, ins 0, wrap"));
-        panel.add(toolbarDecorator.createPanel(), "growx");
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.add(toolbarDecorator.createPanel(), BorderLayout.CENTER);
         BrowserLink browserLink = new BrowserLink(External_link_arrow, "Find official CSV files at skatteverket.se", SKATTEVERKET_URL,
                 SKATTEVERKET_URL);
-        panel.add(browserLink, "align right");
+        browserLink.setHorizontalAlignment(SwingConstants.RIGHT);
+        panel.add(browserLink, BorderLayout.SOUTH);
         return panel;
     }
 
@@ -212,7 +221,7 @@ class PersonalIdentityNumbersInspectionOptionsPanel extends JPanel {
             }
             SimpleTextAttributes attributes = file.isWritable()
                     ? SimpleTextAttributes.REGULAR_ATTRIBUTES
-                    : SimpleTextAttributes.REGULAR_ITALIC_ATTRIBUTES;
+                    : SimpleTextAttributes.GRAY_ITALIC_ATTRIBUTES;
             append(file.getName(), attributes, true);
             String parentPath = getPathRelativeToProjectDir(file, project).orElseGet(() -> file.getParent().getPath());
             append("  ");
