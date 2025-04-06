@@ -53,8 +53,8 @@ import static org.apache.commons.lang3.StringUtils.substringAfterLast;
 public class DownloadWhitelistQuickFix implements LocalQuickFix {
 
     private final static String BASE_URL = "https://skatteverket.entryscape.net/store/9/resource/";
-    private final static String PERSONNUMMER_CATALOG_URL = BASE_URL+"150";
-    private final static String SAMORDNINGS_NUMMER_CATALOG_URL = BASE_URL+"155";
+    private final static String PERSONAL_IDENTITY_NUMBERS_CATALOG_URL = BASE_URL+"150";
+    private final static String COORDINATION_NUMBERS_CATALOG_URL = BASE_URL+"155";
 
     private static final String FILENAME = "filename=";
     public static final String FAMILY_NAME = "Download official whitelist files from Skatteverket.se";
@@ -101,37 +101,15 @@ public class DownloadWhitelistQuickFix implements LocalQuickFix {
     }
 
     private static List<Path> download(@NotNull Project project, VirtualFile dir) {
+        NotificationGroup group = NotificationGroupManager.getInstance()
+                .getNotificationGroup("Swedish Personal Identity Numbers");
         return ProgressManager.getInstance().run(new Task.WithResult<List<Path>, UncheckedIOException>(project, "Downloading whitelists", true) {
             @Override public List<Path> compute(@NotNull ProgressIndicator indicator) {
                 List<Path> paths = new ArrayList<>();
                 List<Path> alreadyExists = new ArrayList<>();
-                NotificationGroup group = NotificationGroupManager.getInstance()
-                                              .getNotificationGroup("Swedish Personal Identity Numbers");
                 List<String> urls = new ArrayList<>();
-                try {
-                    HttpRequests.request(PERSONNUMMER_CATALOG_URL)
-                        .productNameAsUserAgent()
-                        .connect(request -> {
-                            Model model = ModelFactory.createDefaultModel();
-                            RDFParser.source(request.getInputStream())
-                                .lang(RDFLanguages.RDFXML)
-                                .parse(model);
-
-                            Property downloadURL = DCAT.downloadURL;
-                            model.listStatements(null, downloadURL, (RDFNode) null).forEachRemaining(statement -> {
-                                RDFNode object = statement.getObject();
-                                if (object.isURIResource()) {
-                                    urls.add(object.asResource().getURI());
-                                }
-                            });
-                            return null;
-                        });
-                } catch (IOException e) {
-                    Notification failure = group.createNotification("Failed to download whitelist catalog from "+ PERSONNUMMER_CATALOG_URL, WARNING);
-                    failure.setIcon(AllIcons.General.Warning);
-                    failure.notify(project);
-                    return emptyList();
-                }
+                urls.addAll(getUrlsFromCatalogRdf(PERSONAL_IDENTITY_NUMBERS_CATALOG_URL));
+                urls.addAll(getUrlsFromCatalogRdf(COORDINATION_NUMBERS_CATALOG_URL));
 
                 List<String> failedUrls = new ArrayList<>();
                 for (String url : urls) {
@@ -178,6 +156,34 @@ public class DownloadWhitelistQuickFix implements LocalQuickFix {
                 notification.notify(project);
 
                 return paths;
+            }
+
+            private @NotNull List<String> getUrlsFromCatalogRdf(String catalogUrl) {
+                List<String> urls = new ArrayList<>();
+                try {
+                    HttpRequests.request(catalogUrl)
+                        .productNameAsUserAgent()
+                        .connect(request -> {
+                            Model model = ModelFactory.createDefaultModel();
+                            RDFParser.source(request.getInputStream())
+                                .lang(RDFLanguages.RDFXML)
+                                .parse(model);
+
+                            model.listStatements(null, DCAT.downloadURL, (RDFNode) null).forEachRemaining(statement -> {
+                                RDFNode object = statement.getObject();
+                                if (object.isURIResource()) {
+                                    urls.add(object.asResource().getURI());
+                                }
+                            });
+                            return null;
+                        });
+                } catch (IOException e) {
+                    Notification failure = group.createNotification("Failed to download whitelist catalog from "+ catalogUrl, WARNING);
+                    failure.setIcon(AllIcons.General.Warning);
+                    failure.notify(project);
+                    return emptyList();
+                }
+                return urls;
             }
         });
     }

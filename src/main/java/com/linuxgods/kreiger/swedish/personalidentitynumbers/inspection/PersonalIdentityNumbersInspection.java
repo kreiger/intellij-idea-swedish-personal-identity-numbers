@@ -28,6 +28,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.*;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
@@ -204,10 +206,16 @@ public class PersonalIdentityNumbersInspection extends LocalInspectionTool {
     }
 
     private Optional<PersonalIdentityNumber> iterateSubMap(SortedMap<String, ?> subMap, Function<SortedMap<String, ?>, String> firstFunction, UnaryOperator<String> nextFunction, boolean coordinationNumber) {
-        return subMapStream(subMap, firstFunction, nextFunction)
-                .map(PersonalIdentityNumber::new)
-                .filter(number -> number.isCoordinationNumber() == coordinationNumber)
-                .findFirst();
+        try {
+            return subMapStream(subMap, firstFunction, nextFunction)
+                    .map(PersonalIdentityNumber::new)
+                    .filter(number -> number.isCoordinationNumber() == coordinationNumber)
+                    .findFirst();
+        } catch (ConcurrentModificationException e) {
+            return iterateSubMap(subMap, firstFunction, nextFunction, coordinationNumber);
+        } catch (NoSuchElementException e) {
+            return Optional.empty();
+        }
     }
 
     @NotNull

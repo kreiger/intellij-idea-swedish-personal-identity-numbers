@@ -2,19 +2,20 @@ package com.linuxgods.kreiger.swedish.personalidentitynumbers.inspection;
 
 import com.intellij.codeInspection.ui.InspectionOptionsPanel;
 import com.intellij.icons.AllIcons;
+import com.intellij.ide.DataManager;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.CommonDataKeys;
 import com.intellij.openapi.fileChooser.FileChooser;
 import com.intellij.openapi.fileChooser.FileChooserDescriptor;
 import com.intellij.openapi.ide.CopyPasteManager;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.roots.ProjectFileIndex;
 import com.intellij.openapi.ui.ComboBox;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.openapi.ui.popup.Balloon;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.openapi.vfs.VfsUtil;
 import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.openapi.wm.IdeFrame;
 import com.intellij.ui.*;
 import com.intellij.ui.components.*;
 import com.intellij.util.IconUtil;
@@ -49,6 +50,7 @@ class PersonalIdentityNumbersInspectionOptionsPanel extends JPanel {
 
     PersonalIdentityNumbersInspectionOptionsPanel(PersonalIdentityNumbersInspection inspection) {
         super(new BorderLayout());
+        PersonalIdentityNumberFormats formats = inspection.getFormats();
 
         JBTabbedPane tabs = new JBTabbedPane(SwingConstants.TOP);
 
@@ -65,7 +67,7 @@ class PersonalIdentityNumbersInspectionOptionsPanel extends JPanel {
     private JPanel getFormatsPanel(JBTabbedPane tabs, PersonalIdentityNumbersInspection inspection) {
         PersonalIdentityNumberFormats formats = inspection.getFormats();
         CollectionListModel<PersonalIdentityNumberFormat> listModel = new CollectionListModel<>(formats.getFormats(), true);
-        AnActionButton resetButton = new AnActionButton("Reset to default", AllIcons.Actions.Rollback) {
+        AnActionButton resetButton = new AnActionButton("Reset to default", "Reset to default", AllIcons.General.Reset) {
             @Override public void updateButton(@NotNull AnActionEvent e) {
                 e.getPresentation().setEnabled(!defaultFormats().equals(formats.getFormats()));
             }
@@ -114,16 +116,14 @@ class PersonalIdentityNumbersInspectionOptionsPanel extends JPanel {
         toolbarDecorator.setRemoveActionUpdater(e -> list.getModel().getSize() > 1);
 
         JPanel panel = new JPanel(new BorderLayout());
-        JPanel south = new JPanel(new MigLayout("fillx, ins 0"));
         panel.add(toolbarDecorator.createPanel());
-        panel.add(south, BorderLayout.SOUTH);
-        south.add(checkBox("Allow coordination numbers", formats.getCoordinationNumber(),
-                formats::setCoordinationNumber), "split");
-        south.add(new BrowserLink(External_link_arrow, "\"samordningsnummer\"",
-                COORDINATION_NUMBERS_URL, COORDINATION_NUMBERS_URL), "align right, wrap");
-        south.add(new ActionLink("Manage whitelist files...", e -> {
-            tabs.setSelectedIndex(1);
-        }), "wrap");
+        JPanel checkboxPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        checkboxPanel.add(checkBox("Allow coordination numbers", formats.getCoordinationNumber(),
+                formats::setCoordinationNumber));
+        checkboxPanel.add(new BrowserLink(External_link_arrow, "\"samordningsnummer\"",
+                COORDINATION_NUMBERS_URL, COORDINATION_NUMBERS_URL));
+        panel.add(checkboxPanel, BorderLayout.SOUTH);
+
         return panel;
     }
 
@@ -158,6 +158,7 @@ class PersonalIdentityNumbersInspectionOptionsPanel extends JPanel {
         JBList<VirtualFile> list = new JBList<>(model);
         list.setCellRenderer(new FileRelativeToProjectDirRenderer());
         ToolbarDecorator toolbarDecorator = ToolbarDecorator.createDecorator(list, model);
+        toolbarDecorator.setMinimumSize(InspectionOptionsPanel.getMinimumListSize());
         toolbarDecorator.disableUpDownActions();
         toolbarDecorator.setAddAction(button -> {
             FileChooserDescriptor fileChooserDescriptor = new FileChooserDescriptor(true, false, false, false, true,
@@ -166,12 +167,14 @@ class PersonalIdentityNumbersInspectionOptionsPanel extends JPanel {
             FileChooser.chooseFiles(fileChooserDescriptor, CommonDataKeys.PROJECT.getData(button.getDataContext()), null, model::add);
 
         });
-        toolbarDecorator.setMinimumSize(InspectionOptionsPanel.getMinimumListSize());
-        AnActionButton downloadButton = new AnActionButton(DownloadWhitelistQuickFix.FAMILY_NAME, AllIcons.ToolbarDecorator.AddLink) {
+        AnActionButton downloadButton = new AnActionButton(DownloadWhitelistQuickFix.FAMILY_NAME, DownloadWhitelistQuickFix.FAMILY_NAME, AllIcons.ToolbarDecorator.AddLink) {
             @Override public void updateButton(@NotNull AnActionEvent e) {
-
                 e.getPresentation().setEnabled(model.getItems().stream()
                         .allMatch(VirtualFile::isWritable));
+            }
+
+            @Override public boolean isDumbAware() {
+                return true;
             }
 
             @Override
@@ -181,7 +184,8 @@ class PersonalIdentityNumbersInspectionOptionsPanel extends JPanel {
         };
         toolbarDecorator.addExtraAction(downloadButton);
         JPanel panel = new JPanel(new BorderLayout());
-        panel.add(toolbarDecorator.createPanel(), BorderLayout.CENTER);
+        panel.add(toolbarDecorator.createPanel());
+
         BrowserLink browserLink = new BrowserLink(External_link_arrow, "Find official CSV files at skatteverket.se", SKATTEVERKET_URL,
                 SKATTEVERKET_URL);
         browserLink.setHorizontalAlignment(SwingConstants.RIGHT);
@@ -215,42 +219,25 @@ class PersonalIdentityNumbersInspectionOptionsPanel extends JPanel {
     private static class FileRelativeToProjectDirRenderer extends ColoredListCellRenderer<VirtualFile> {
         @Override
         protected void customizeCellRenderer(@NotNull JList<? extends VirtualFile> list, VirtualFile file, int index, boolean selected, boolean hasFocus) {
-            Project project = getProjectForComponent(list);
+            Project project = CommonDataKeys.PROJECT.getData(DataManager.getInstance().getDataContext(list));
             if (project != null) {
                 setIcon(IconUtil.getIcon(file, 0, project));
             }
             SimpleTextAttributes attributes = file.isWritable()
                     ? SimpleTextAttributes.REGULAR_ATTRIBUTES
-                    : SimpleTextAttributes.GRAY_ITALIC_ATTRIBUTES;
+                    : SimpleTextAttributes.REGULAR_ITALIC_ATTRIBUTES;
             append(file.getName(), attributes, true);
             String parentPath = getPathRelativeToProjectDir(file, project).orElseGet(() -> file.getParent().getPath());
             append("  ");
             append(parentPath, SimpleTextAttributes.GRAY_ATTRIBUTES);
         }
 
-        @Nullable
-        private Project getProjectForComponent(Component component) {
-            @Nullable Window window = ComponentUtil.getWindow(component);
-            if (window != null) {
-              while (window.getOwner() != null) {
-                window = window.getOwner();
-              }
-              if (window instanceof IdeFrame) {
-                return ((IdeFrame)window).getProject();
-              }
-            }
-            return null;
-        }
-
         private Optional<String> getPathRelativeToProjectDir(VirtualFile file, Project project) {
-            return guessProjectDir(project)
+            return Optional.ofNullable(project)
+                    .map(p -> ProjectFileIndex.getInstance(project).getContentRootForFile(file, false))
                     .map(projectDir -> VfsUtil.getRelativePath(file.getParent(), projectDir));
         }
 
-        @NotNull private Optional<VirtualFile> guessProjectDir(Project project) {
-            return Optional.ofNullable(project)
-                    .map(p -> com.intellij.openapi.project.ProjectUtil.guessProjectDir(project));
-        }
     }
 
     private class PersonalNumberFormatDialog extends DialogWrapper {
