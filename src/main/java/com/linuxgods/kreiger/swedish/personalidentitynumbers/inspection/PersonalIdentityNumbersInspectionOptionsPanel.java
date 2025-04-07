@@ -5,6 +5,7 @@ import com.intellij.icons.AllIcons;
 import com.intellij.ide.DataManager;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.CommonDataKeys;
+import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.fileChooser.FileChooser;
 import com.intellij.openapi.fileChooser.FileChooserDescriptor;
 import com.intellij.openapi.ide.CopyPasteManager;
@@ -17,6 +18,7 @@ import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.openapi.vfs.VfsUtil;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.ui.*;
+import com.intellij.ui.awt.RelativePoint;
 import com.intellij.ui.components.*;
 import com.intellij.util.IconUtil;
 import com.linuxgods.kreiger.swedish.personalidentitynumbers.inspection.quickfix.DownloadWhitelistQuickFix;
@@ -54,7 +56,7 @@ class PersonalIdentityNumbersInspectionOptionsPanel extends JPanel {
 
         JBTabbedPane tabs = new JBTabbedPane(SwingConstants.TOP);
 
-        JPanel formatsPanel = getFormatsPanel(tabs, inspection);
+        JPanel formatsPanel = getFormatsPanel(inspection);
         tabs.add("Personal number formats", formatsPanel);
 
         JPanel whitelistPanel = getWhitelistPanel(inspection);
@@ -64,12 +66,20 @@ class PersonalIdentityNumbersInspectionOptionsPanel extends JPanel {
     }
 
     @NotNull
-    private JPanel getFormatsPanel(JBTabbedPane tabs, PersonalIdentityNumbersInspection inspection) {
+    private JPanel getFormatsPanel(PersonalIdentityNumbersInspection inspection) {
         PersonalIdentityNumberFormats formats = inspection.getFormats();
         CollectionListModel<PersonalIdentityNumberFormat> listModel = new CollectionListModel<>(formats.getFormats(), true);
-        AnActionButton resetButton = new AnActionButton("Reset to default", "Reset to default", AllIcons.General.Reset) {
-            @Override public void updateButton(@NotNull AnActionEvent e) {
+        AnAction resetButton = new AnAction("Reset to Default", "Reset to default", AllIcons.General.Reset) {
+            @Override public void update(@NotNull AnActionEvent e) {
                 e.getPresentation().setEnabled(!defaultFormats().equals(formats.getFormats()));
+            }
+
+            @Override public @NotNull ActionUpdateThread getActionUpdateThread() {
+                return ActionUpdateThread.EDT;
+            }
+
+            @Override public boolean isDumbAware() {
+                return true;
             }
 
             @Override
@@ -103,9 +113,7 @@ class PersonalIdentityNumbersInspectionOptionsPanel extends JPanel {
                 listModel.add(patternBuilder);
             }
         });
-        toolbarDecorator.setEditAction(anActionButton -> {
-            edit(listModel, list);
-        });
+        toolbarDecorator.setEditAction(anActionButton -> edit(listModel, list));
         new DoubleClickListener() {
             @Override protected boolean onDoubleClick(@NotNull MouseEvent event) {
                 edit(listModel, list);
@@ -122,7 +130,7 @@ class PersonalIdentityNumbersInspectionOptionsPanel extends JPanel {
                 formats::setCoordinationNumber));
         checkboxPanel.add(new BrowserLink(External_link_arrow, "\"samordningsnummer\"",
                 COORDINATION_NUMBERS_URL, COORDINATION_NUMBERS_URL));
-        panel.add(checkboxPanel, BorderLayout.SOUTH);
+        panel.add(checkboxPanel, BorderLayout.NORTH);
 
         return panel;
     }
@@ -156,6 +164,7 @@ class PersonalIdentityNumbersInspectionOptionsPanel extends JPanel {
         });
 
         JBList<VirtualFile> list = new JBList<>(model);
+
         list.setCellRenderer(new FileRelativeToProjectDirRenderer());
         ToolbarDecorator toolbarDecorator = ToolbarDecorator.createDecorator(list, model);
         toolbarDecorator.setMinimumSize(InspectionOptionsPanel.getMinimumListSize());
@@ -167,10 +176,14 @@ class PersonalIdentityNumbersInspectionOptionsPanel extends JPanel {
             FileChooser.chooseFiles(fileChooserDescriptor, CommonDataKeys.PROJECT.getData(button.getDataContext()), null, model::add);
 
         });
-        AnActionButton downloadButton = new AnActionButton(DownloadWhitelistQuickFix.FAMILY_NAME, DownloadWhitelistQuickFix.FAMILY_NAME, AllIcons.ToolbarDecorator.AddLink) {
-            @Override public void updateButton(@NotNull AnActionEvent e) {
+        AnAction downloadButton = new AnAction(DownloadWhitelistQuickFix.FAMILY_NAME, DownloadWhitelistQuickFix.FAMILY_NAME, AllIcons.ToolbarDecorator.AddLink) {
+            @Override public void update(@NotNull AnActionEvent e) {
                 e.getPresentation().setEnabled(model.getItems().stream()
                         .allMatch(VirtualFile::isWritable));
+            }
+
+            @Override public @NotNull ActionUpdateThread getActionUpdateThread() {
+                return ActionUpdateThread.EDT;
             }
 
             @Override public boolean isDumbAware() {
@@ -185,8 +198,7 @@ class PersonalIdentityNumbersInspectionOptionsPanel extends JPanel {
         toolbarDecorator.addExtraAction(downloadButton);
         JPanel panel = new JPanel(new BorderLayout());
         panel.add(toolbarDecorator.createPanel());
-
-        BrowserLink browserLink = new BrowserLink(External_link_arrow, "Find official CSV files at skatteverket.se", SKATTEVERKET_URL,
+        BrowserLink browserLink = new BrowserLink(External_link_arrow, "Find official CSV files at Skatteverket.se", SKATTEVERKET_URL,
                 SKATTEVERKET_URL);
         browserLink.setHorizontalAlignment(SwingConstants.RIGHT);
         panel.add(browserLink, BorderLayout.SOUTH);
@@ -217,9 +229,13 @@ class PersonalIdentityNumbersInspectionOptionsPanel extends JPanel {
     }
 
     private static class FileRelativeToProjectDirRenderer extends ColoredListCellRenderer<VirtualFile> {
+
+        public FileRelativeToProjectDirRenderer() {
+        }
+
         @Override
         protected void customizeCellRenderer(@NotNull JList<? extends VirtualFile> list, VirtualFile file, int index, boolean selected, boolean hasFocus) {
-            Project project = CommonDataKeys.PROJECT.getData(DataManager.getInstance().getDataContext(list));
+            Project project = getProjectForComponent(list);
             if (project != null) {
                 setIcon(IconUtil.getIcon(file, 0, project));
             }
@@ -227,9 +243,15 @@ class PersonalIdentityNumbersInspectionOptionsPanel extends JPanel {
                     ? SimpleTextAttributes.REGULAR_ATTRIBUTES
                     : SimpleTextAttributes.REGULAR_ITALIC_ATTRIBUTES;
             append(file.getName(), attributes, true);
-            String parentPath = getPathRelativeToProjectDir(file, project).orElseGet(() -> file.getParent().getPath());
+            String parentPath = getPathRelativeToProjectDir(file, project).orElseGet(() -> file.getPath());
             append("  ");
             append(parentPath, SimpleTextAttributes.GRAY_ATTRIBUTES);
+        }
+
+        @Nullable
+        private Project getProjectForComponent(Component component) {
+            DataContext dataContext = DataManager.getInstance().getDataContext(component);
+            return CommonDataKeys.PROJECT.getData(dataContext);
         }
 
         private Optional<String> getPathRelativeToProjectDir(VirtualFile file, Project project) {
@@ -257,66 +279,68 @@ class PersonalIdentityNumbersInspectionOptionsPanel extends JPanel {
         }
 
         private class PersonalNumberFormatPanel extends JPanel {
-            public PersonalNumberFormatPanel(PersonalIdentityNumberFormat pb) {
-                super(new MigLayout("fillx, ins 0"));
-                JLabel formatLabel = new JLabel(pb.formatString());
-                add(formatLabel, "gapy 5, align center, span 3");
 
+            private final JBLabel formatLabel;
+            private final PersonalIdentityNumberFormat format;
+
+            public PersonalNumberFormatPanel(PersonalIdentityNumberFormat personalIdentityNumberFormat) {
+                super(new MigLayout("fillx, ins 0"));
+                this.format = personalIdentityNumberFormat;
+                formatLabel = new JBLabel(format.formatString());
+                add(formatLabel, "gapy 5, align center, span 3");
                 ActionLink copyLink = new ActionLink("Copy regex", e -> {
-                    CopyPasteManager.getInstance().setContents(new StringSelection(pb.buildString()));
+                    CopyPasteManager.getInstance().setContents(new StringSelection(format.buildString()));
                     Balloon balloon = JBPopupFactory.getInstance()
                             .createBalloonBuilder(new JLabel("Copied regular expression to clipboard"))
                             .setFadeoutTime(3000)
                             .createBalloon();
-                    balloon.showInCenterOf(formatLabel);
+                    balloon.show(RelativePoint.getSouthOf(formatLabel), Balloon.Position.below);
                 });
                 add(copyLink, "wrap");
 
                 add(new JSeparator(), "gapy 5, growx, span, wrap");
 
                 var millennium = requirementComboBox();
-                millennium.setSelectedIndex(pb.getMillennium().ordinal());
-                millennium.setEnabled(pb.getCentury() != REJECTED);
-                var century = comboBox(pb.getCentury(), c -> {
-                    pb.setCentury(c);
+                millennium.setSelectedIndex(format.getMillennium().ordinal());
+                millennium.setEnabled(format.getCentury() != REJECTED);
+                var century = comboBox(format.getCentury(), c -> {
                     millennium.setEnabled(c != REJECTED);
-                    updateLabel(pb, formatLabel);
+                    updateFormat( f -> f.setCentury(c));
                 });
                 millennium.addItemListener(e -> {
                     if (e.getStateChange() != ItemEvent.SELECTED) return;
                     Requirement mr = Requirement.values()[millennium.getSelectedIndex()];
-                    pb.setMillennium(mr);
-                    updateLabel(pb, formatLabel);
+                    updateFormat(f -> f.setMillennium(mr));
                 });
 
                 add("Century digits", "gapy 5, growx", century);
                 add("Millennium digit", "growx, wrap", millennium);
-                add("Separator [-+]", "growx, wrap", comboBox(pb.getSeparator(), separator -> {
-                    pb.setSeparator(separator);
-                    updateLabel(pb, formatLabel);
+                add("Separator [-+]", "growx, wrap", comboBox(format.getSeparator(), separator -> {
+                    updateFormat(f -> f.setSeparator(separator));
                 }));
 
-                JBCheckBox invalidChecksumCB = checkBox("Allow invalid checksum", pb.isInvalidChecksumAllowed(), s -> {
-                    pb.setInvalidChecksumAllowed(s);
-                    updateLabel(pb, formatLabel);
+                JBCheckBox invalidChecksumCB = checkBox("Allow invalid checksum", format.isInvalidChecksumAllowed(), s -> {
+                    updateFormat(f -> f.setInvalidChecksumAllowed(s));
                 });
-                invalidChecksumCB.setEnabled(pb.getChecksumDigit() != REJECTED);
-                add("Checksum digit", "growx", comboBox(pb.getChecksumDigit(), checksumDigit -> {
-                    pb.setChecksumDigit(checksumDigit);
+                invalidChecksumCB.setEnabled(format.getChecksumDigit() != REJECTED);
+                add("Checksum digit", "growx", comboBox(format.getChecksumDigit(), checksumDigit -> {
                     invalidChecksumCB.setEnabled(checksumDigit != REJECTED);
-                    updateLabel(pb, formatLabel);
+                    updateFormat(f -> f.setChecksumDigit(checksumDigit));
                 }));
                 add(invalidChecksumCB, "span 2, growx, wrap");
 
                 JBCheckBox surroundingDigitsCB = checkBox("Allow surrounding digits ",
-                        pb.isSurroundingDigitsAllowed(), s -> {
-                            pb.setSurroundingDigitsAllowed(s);
-                            updateLabel(pb, formatLabel);
+                        format.isSurroundingDigitsAllowed(), s -> {
+                            updateFormat(f -> f.setSurroundingDigitsAllowed(s));
                         });
 
                 add(surroundingDigitsCB, "span 2, growx, wrap");
             }
 
+            private void updateFormat(Consumer<PersonalIdentityNumberFormat> formatConsumer) {
+                formatConsumer.accept(format);
+                formatLabel.setText(format.formatString());
+            }
 
             private void add(String label, String constraints, Component component) {
                 final JLabel l = new JLabel(label);
@@ -327,8 +351,5 @@ class PersonalIdentityNumbersInspectionOptionsPanel extends JPanel {
 
         }
 
-        private void updateLabel(PersonalIdentityNumberFormat pb, JLabel formatLabel) {
-            formatLabel.setText(pb.formatString());
-        }
     }
 }
