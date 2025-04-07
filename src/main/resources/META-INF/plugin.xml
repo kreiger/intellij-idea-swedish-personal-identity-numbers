@@ -3,8 +3,6 @@
 
     <name>Swedish Personal Identity Numbers Inspection</name>
 
-    <version>1.0.2</version>
-
     <vendor email="christoffer.hammarstrom@gmail.com">Christoffer Hammarström</vendor>
 
     <description><![CDATA[
@@ -38,6 +36,11 @@
 
     <change-notes><![CDATA[
         <dl>
+        <dt>1.0.4</dt>
+        <dd><ul>
+            <li>Added support for IntelliJ platform 2024.</li>
+            <li>Fixed download from Skatteverket.se to fetch list of files first, instead of using hard coded list.</li>
+        </ul></dd>
         <dt>1.0.3</dt>
         <dd><ul>
             <li>Code complete only on prefixes of at least 4 digits.</li>
@@ -59,14 +62,14 @@
 
     <depends>com.intellij.modules.platform</depends>
 
-    <idea-version since-build="212"/>
+    <idea-version since-build="2024.1.1"/>
     <projectListeners>
         <listener
                 class="com.linuxgods.kreiger.swedish.personalidentitynumbers.PersonalIdentityNumberWhitelistFileListener"
                 topic="com.intellij.openapi.vfs.newvfs.BulkFileListener"/>
     </projectListeners>
     <extensions defaultExtensionNs="com.intellij">
-        <localInspection
+        <localInspection language=""
                 shortName="SwedishPersonalIdentityNumbers"
                 implementationClass="com.linuxgods.kreiger.swedish.personalidentitynumbers.inspection.PersonalIdentityNumbersInspection"
                 displayName="Swedish personal identity numbers"
@@ -74,9 +77,9 @@
                 groupKey="inspection.general.tools.group.name"
                 enabledByDefault="true"
         />
-        <psi.referenceContributor
+        <psi.referenceContributor language=""
                 implementation="com.linuxgods.kreiger.swedish.personalidentitynumbers.PersonaldentityNumberReferenceContributor"/>
-        <completion.contributor language="any"
+        <completion.contributor language=""
                                 implementationClass="com.linuxgods.kreiger.swedish.personalidentitynumbers.PersonalIdentityNumberCompletionContributor"/>
         <notificationGroup displayType="BALLOON" id="Swedish Personal Identity Numbers"/>
     </extensions>

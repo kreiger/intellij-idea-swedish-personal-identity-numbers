@@ -4,6 +4,8 @@ import com.intellij.codeInspection.LocalInspectionTool;
 import com.intellij.codeInspection.LocalQuickFix;
 import com.intellij.codeInspection.ProblemsHolder;
 import com.intellij.codeInspection.ex.InspectionProfileImpl;
+import com.intellij.codeInspection.ui.InspectionOptionsPanel;
+import com.intellij.ide.actions.runAnything.RunAnythingUtil;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.event.DocumentEvent;
 import com.intellij.openapi.editor.event.DocumentListener;
@@ -27,9 +29,13 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.*;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import static com.intellij.codeInspection.ProblemHighlightType.INFORMATION;
@@ -39,10 +45,23 @@ import static java.util.Comparator.*;
 import static java.util.stream.Collectors.*;
 
 public class PersonalIdentityNumbersInspection extends LocalInspectionTool {
+    private final static Pattern YEAR_PATTERN = Pattern.compile("(?<!\\d)(\\d{4})(?!\\d)");
 
     public static final @NotNull String SHORT_NAME = "SwedishPersonalIdentityNumbers"; // Matches plugin.xml
     public static final PersonalIdentityNumberFormats WHITELIST_FORMATS = new PersonalIdentityNumberFormats(
             List.of(formatWithCentury(ALLOWED).setInvalidChecksumAllowed(true)));
+    public static final Comparator<VirtualFile> WHITELISTS_ORDER = comparing((VirtualFile file)-> file.getParent().getPath()).reversed()
+                                                                       .thenComparing(VirtualFile::isWritable).reversed()
+                                                                       .thenComparing((a,b) -> {
+                                                                           if (!a.isWritable() && !b.isWritable()) {
+                                                                               Matcher am = YEAR_PATTERN.matcher(a.getName());
+                                                                               Matcher bm = YEAR_PATTERN.matcher(b.getName());
+                                                                               if (am.find() && bm.find()) {
+                                                                                   return am.group(1).compareTo(bm.group(1));
+                                                                               }
+                                                                           }
+                                                                           return a.getName().compareToIgnoreCase(b.getName());
+                                                                       });
 
     private Set<String> whitelistUrls = new LinkedHashSet<>();
     private Set<VirtualFile> whitelistFiles = null;
@@ -156,9 +175,7 @@ public class PersonalIdentityNumbersInspection extends LocalInspectionTool {
         return whitelistUrls.stream()
                 .map(virtualFileManager::refreshAndFindFileByUrl)
                 .filter(Objects::nonNull)
-                .sorted(comparing(VirtualFile::isWritable).reversed()
-                        .thenComparing(file -> file.getParent().getPath())
-                        .thenComparing(VirtualFile::getName, String.CASE_INSENSITIVE_ORDER))
+                .sorted(WHITELISTS_ORDER)
                 .collect(toCollection(LinkedHashSet::new));
     }
 
@@ -190,10 +207,16 @@ public class PersonalIdentityNumbersInspection extends LocalInspectionTool {
     }
 
     private Optional<PersonalIdentityNumber> iterateSubMap(SortedMap<String, ?> subMap, Function<SortedMap<String, ?>, String> firstFunction, UnaryOperator<String> nextFunction, boolean coordinationNumber) {
-        return subMapStream(subMap, firstFunction, nextFunction)
-                .map(PersonalIdentityNumber::new)
-                .filter(number -> number.isCoordinationNumber() == coordinationNumber)
-                .findFirst();
+        try {
+            return subMapStream(subMap, firstFunction, nextFunction)
+                    .map(PersonalIdentityNumber::new)
+                    .filter(number -> number.isCoordinationNumber() == coordinationNumber)
+                    .findFirst();
+        } catch (ConcurrentModificationException e) {
+            return iterateSubMap(subMap, firstFunction, nextFunction, coordinationNumber);
+        } catch (NoSuchElementException e) {
+            return Optional.empty();
+        }
     }
 
     @NotNull

@@ -1,33 +1,50 @@
+import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
+import org.jetbrains.intellij.platform.gradle.models.ProductRelease
+
 plugins {
     id("java")
-    id("org.jetbrains.intellij") version "1.13.2"
+    id("org.jetbrains.intellij.platform") version "2.5.0"
 }
 
 group = "com.linuxgods.kreiger"
-version = "1.0.3"
+version = "1.0.4"
 
 repositories {
     mavenCentral()
+    intellijPlatform {
+        defaultRepositories()
+    }
 }
 
 dependencies {
     implementation("org.apache.commons:commons-collections4:4.3")
+    implementation("org.apache.jena:apache-jena:5.3.0")
+    intellijPlatform {
+        intellijIdeaCommunity("2024.3.5")
+    }
 }
 
 // Configure Gradle IntelliJ Plugin - read more: https://github.com/JetBrains/gradle-intellij-plugin
-intellij {
-    version.set("2022.3.3")
-    type.set("IC") // Target IDE Platform
-
-    plugins.set(listOf())
-    updateSinceUntilBuild.set(false)
+intellijPlatform {
+    pluginConfiguration {
+        ideaVersion {
+            untilBuild = provider { null }
+        }
+    }
+    pluginVerification {
+        ides {
+            ide(IntelliJPlatformType.IntellijIdeaCommunity, "2022.3")
+            ide(IntelliJPlatformType.IntellijIdeaCommunity, "2024.3.5")
+            recommended()
+        }
+    }
 }
 
 tasks {
     // Set the JVM compatibility versions
     withType<JavaCompile> {
-        sourceCompatibility = "11"
-        targetCompatibility = "11"
+        sourceCompatibility = "17"
+        targetCompatibility = "17"
     }
 
     signPlugin {
@@ -41,10 +58,6 @@ tasks {
     }
 
     runIde {
-        jvmArgs("-Xmx4096m")
-    }
-
-    runPluginVerifier {
-        ideVersions.set(listOf("IC-2021.2", "IC-2022.3.3"))
+        jvmArgs("-Xmx8192m")
     }
 }
