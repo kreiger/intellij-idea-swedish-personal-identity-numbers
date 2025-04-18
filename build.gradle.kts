@@ -18,9 +18,8 @@ repositories {
 
 dependencies {
     implementation("org.apache.commons:commons-collections4:4.3")
-    implementation("org.apache.jena:apache-jena:5.3.0")
     intellijPlatform {
-        intellijIdeaCommunity("2024.3.5")
+        intellijIdeaCommunity("2022.3")
     }
 }
 

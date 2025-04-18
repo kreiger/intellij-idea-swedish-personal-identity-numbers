@@ -26,15 +26,20 @@ import com.intellij.openapi.vfs.VirtualFileManager;
 import com.intellij.openapi.wm.ToolWindowId;
 import com.intellij.util.IconUtil;
 import com.intellij.util.io.HttpRequests;
-import org.apache.jena.rdf.model.*;
-import org.apache.jena.riot.RDFLanguages;
-import org.apache.jena.riot.RDFParser;
-import org.apache.jena.vocabulary.DCAT;
 import org.jetbrains.annotations.Nls;
 import org.jetbrains.annotations.NotNull;
+import org.w3c.dom.Document;
+import org.w3c.dom.NamedNodeMap;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
 
 import javax.swing.*;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -159,23 +164,27 @@ public class DownloadWhitelistQuickFix implements LocalQuickFix {
             }
 
             private @NotNull List<String> getUrlsFromCatalogRdf(String catalogUrl) {
-                List<String> urls = new ArrayList<>();
                 try {
-                    HttpRequests.request(catalogUrl)
+                    return HttpRequests.request(catalogUrl)
                         .productNameAsUserAgent()
                         .connect(request -> {
-                            Model model = ModelFactory.createDefaultModel();
-                            RDFParser.source(request.getInputStream())
-                                .lang(RDFLanguages.RDFXML)
-                                .parse(model);
-
-                            model.listStatements(null, DCAT.downloadURL, (RDFNode) null).forEachRemaining(statement -> {
-                                RDFNode object = statement.getObject();
-                                if (object.isURIResource()) {
-                                    urls.add(object.asResource().getURI());
+                            List<String> urls = new ArrayList<>();
+                            Document document = parseXml(request.getInputStream());
+                            NodeList downloadURL = document.getElementsByTagNameNS("http://www.w3.org/ns/dcat#", "downloadURL");
+                            if (downloadURL.getLength() == 0) {
+                                throw new RuntimeException("Failed to parse catalog RDF");
+                            }
+                            for (int i = 0; i < downloadURL.getLength(); i++) {
+                                NamedNodeMap attributes = downloadURL.item(i).getAttributes();
+                                Node resource = attributes.getNamedItemNS("http://www.w3.org/1999/02/22-rdf-syntax-ns#", "resource");
+                                if (resource != null) {
+                                    urls.add(resource.getNodeValue());
                                 }
-                            });
-                            return null;
+                            }
+                            if (urls.isEmpty()) {
+                                throw new RuntimeException("Failed to parse catalog RDF");
+                            }
+                            return urls;
                         });
                 } catch (IOException e) {
                     Notification failure = group.createNotification("Failed to download whitelist catalog from "+ catalogUrl, WARNING);
@@ -183,9 +192,23 @@ public class DownloadWhitelistQuickFix implements LocalQuickFix {
                     failure.notify(project);
                     return emptyList();
                 }
-                return urls;
             }
         });
+    }
+
+    private static Document parseXml(@NotNull InputStream inputStream) {
+        try {
+            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+            factory.setNamespaceAware(true);
+            DocumentBuilder documentBuilder = factory
+                    .newDocumentBuilder();
+            return documentBuilder
+                    .parse(inputStream);
+        } catch (ParserConfigurationException | SAXException e) {
+            throw new RuntimeException(e);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     @NotNull
